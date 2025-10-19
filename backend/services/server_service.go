@@ -64,6 +64,18 @@ func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRe
 		return nil, fmt.Errorf("failed to get servers: %w", err)
 	}
 
+	// Apply pagination to the results
+	start := (req.Page - 1) * req.PerPage
+	end := start + req.PerPage
+	
+	if start >= len(servers) {
+		servers = []models.Server{} // Empty slice if start is beyond available data
+	} else if end > len(servers) {
+		servers = servers[start:] // Take from start to end of available data
+	} else {
+		servers = servers[start:end] // Take the requested page slice
+	}
+
 	// Convert to DTOs
 	serverDTOs := make([]dto.ServerDTO, len(servers))
 	for i, server := range servers {
