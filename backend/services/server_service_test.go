@@ -17,7 +17,36 @@ type MockServerRepository struct {
 }
 
 func (m *MockServerRepository) GetServers(ctx context.Context, filters models.ServerFilters) ([]models.Server, int64, error) {
-	return m.servers, int64(len(m.servers)), nil
+	// Apply basic filtering for testing
+	filteredServers := make([]models.Server, 0)
+
+	for _, server := range m.servers {
+		// Apply RAM filter
+		if filters.RAMMin != nil && server.RAMGB != nil && *server.RAMGB < *filters.RAMMin {
+			continue
+		}
+		if filters.RAMMax != nil && server.RAMGB != nil && *server.RAMGB > *filters.RAMMax {
+			continue
+		}
+
+		// Apply RAM values filter (exact match)
+		if len(filters.RAMValues) > 0 && server.RAMGB != nil {
+			found := false
+			for _, ramValue := range filters.RAMValues {
+				if *server.RAMGB == ramValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		filteredServers = append(filteredServers, server)
+	}
+
+	return filteredServers, int64(len(filteredServers)), nil
 }
 
 func (m *MockServerRepository) GetServerByID(ctx context.Context, id int) (*models.Server, error) {
@@ -30,7 +59,36 @@ func (m *MockServerRepository) GetServerByID(ctx context.Context, id int) (*mode
 }
 
 func (m *MockServerRepository) GetServerCount(ctx context.Context, filters models.ServerFilters) (int64, error) {
-	return int64(len(m.servers)), nil
+	// Apply same filtering logic as GetServers
+	filteredServers := make([]models.Server, 0)
+
+	for _, server := range m.servers {
+		// Apply RAM filter
+		if filters.RAMMin != nil && server.RAMGB != nil && *server.RAMGB < *filters.RAMMin {
+			continue
+		}
+		if filters.RAMMax != nil && server.RAMGB != nil && *server.RAMGB > *filters.RAMMax {
+			continue
+		}
+
+		// Apply RAM values filter (exact match)
+		if len(filters.RAMValues) > 0 && server.RAMGB != nil {
+			found := false
+			for _, ramValue := range filters.RAMValues {
+				if *server.RAMGB == ramValue {
+					found = true
+					break
+				}
+			}
+			if !found {
+				continue
+			}
+		}
+
+		filteredServers = append(filteredServers, server)
+	}
+
+	return int64(len(filteredServers)), nil
 }
 
 func (m *MockServerRepository) GetLocations(ctx context.Context) ([]string, error) {
