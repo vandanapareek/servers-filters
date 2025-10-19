@@ -41,8 +41,7 @@ services:
     volumes:
       - ./backend/data:/app/backend/data:ro # Read-only access to database
     depends_on:
-      redis:
-        condition: service_healthy
+      - redis
     restart: unless-stopped
     healthcheck:
       test:
@@ -69,8 +68,7 @@ services:
     ports:
       - "3001:80"
     depends_on:
-      backend:
-        condition: service_healthy
+      - backend
     restart: unless-stopped
     healthcheck:
       test:
