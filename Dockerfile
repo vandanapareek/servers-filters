@@ -1,11 +1,11 @@
-# Use your backend Dockerfile directly
-FROM golang:1.21-alpine AS builder
+# Single-stage build for Go backend
+FROM golang:1.21-alpine
+
+# Install dependencies
+RUN apk add --no-cache git ca-certificates gcc musl-dev sqlite
 
 # Set working directory
 WORKDIR /app
-
-# Install git, ca-certificates, and gcc (needed for go mod download and CGO)
-RUN apk add --no-cache git ca-certificates gcc musl-dev
 
 # Copy go mod files
 COPY backend/go.mod backend/go.sum ./
@@ -13,29 +13,11 @@ COPY backend/go.mod backend/go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy source code and database
 COPY backend/ .
 
 # Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o servers-listing main.go
-
-# Final stage
-FROM alpine:latest
-
-# Install ca-certificates and sqlite
-RUN apk --no-cache add ca-certificates sqlite
-
-# Create app directory
-WORKDIR /app
-
-# Copy the binary from builder stage
-COPY --from=builder /app/servers-listing .
-
-# Copy the database file
-COPY backend/data/servers.db ./data/servers.db
-
-# Create data directory if it doesn't exist
-RUN mkdir -p data
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o servers-filters main.go
 
 # Expose port
 EXPOSE 8080
@@ -45,4 +27,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
 
 # Run the application
-CMD ["./servers-listing"]
+CMD ["./servers-filters"]
