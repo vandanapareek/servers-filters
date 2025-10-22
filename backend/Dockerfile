@@ -1,5 +1,5 @@
 # Multi-stage build for Go backend
-FROM golang:1.21-alpine AS builder
+FROM --platform=linux/amd64 golang:1.21-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,7 @@ COPY . .
 RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o servers-listing main.go
 
 # Final stage
-FROM alpine:latest
+FROM --platform=linux/amd64 alpine:latest
 
 # Install ca-certificates and sqlite
 RUN apk --no-cache add ca-certificates sqlite

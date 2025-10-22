@@ -1,5 +1,5 @@
 # Multi-stage build for Vue.js frontend
-FROM node:20-alpine AS builder
+FROM --platform=linux/amd64 node:20-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -17,13 +17,20 @@ COPY . .
 RUN npm run build
 
 # Production stage with nginx
-FROM nginx:alpine
+FROM --platform=linux/amd64 nginx:alpine
+
+# Accept backend URL at build time to bake per-environment config
+ARG BACKEND_URL
+ENV BACKEND_URL=${BACKEND_URL}
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx configuration
 COPY nginx.conf /etc/nginx/nginx.conf
+
+# Inject BACKEND_URL into nginx.conf
+RUN sh -c 'sed -i "s|\${BACKEND_URL}|${BACKEND_URL}|g" /etc/nginx/nginx.conf'
 
 # Expose port
 EXPOSE 80
