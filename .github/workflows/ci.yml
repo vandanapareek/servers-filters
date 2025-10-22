@@ -71,7 +71,7 @@ jobs:
         docker compose down
 
   deploy-staging:
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'staging'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging'
     needs: test
     runs-on: ubuntu-latest
     environment: 
@@ -149,7 +149,7 @@ jobs:
         echo "✅ Staging deployment completed!"
 
   deploy-production:
-    if: github.event_name == 'workflow_dispatch' && inputs.target == 'production'
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
     needs: test
     runs-on: ubuntu-latest
     environment: 
