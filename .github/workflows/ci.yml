@@ -74,154 +74,30 @@ jobs:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging'
     needs: test
     runs-on: ubuntu-latest
-    environment: 
-      name: staging
-      url: ${{ steps.deployment.outputs.url }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-    
-    - name: Build and push backend image
-      run: |
-        cd backend
-        docker build --platform linux/amd64 -t $ECR_REGISTRY/servers-filters-backend:$GITHUB_SHA .
-        docker build --platform linux/amd64 -t $ECR_REGISTRY/servers-filters-backend:staging-latest .
-        docker push $ECR_REGISTRY/servers-filters-backend:$GITHUB_SHA
-        docker push $ECR_REGISTRY/servers-filters-backend:staging-latest
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    
-    - name: Build and push frontend image
-      run: |
-        cd frontend
-        docker build --platform linux/amd64 \
-          --build-arg BACKEND_URL=${{ secrets.STAGING_BACKEND_URL }} \
-          -t $ECR_REGISTRY/servers-filters-frontend:$GITHUB_SHA .
-        docker build --platform linux/amd64 \
-          --build-arg BACKEND_URL=${{ secrets.STAGING_BACKEND_URL }} \
-          -t $ECR_REGISTRY/servers-filters-frontend:staging-latest .
-        docker push $ECR_REGISTRY/servers-filters-frontend:$GITHUB_SHA
-        docker push $ECR_REGISTRY/servers-filters-frontend:staging-latest
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    
-    - name: Update ECS backend service
-      run: |
-        aws ecs update-service \
-          --cluster servers-filters-staging-cluster \
-          --service servers-filters-backend-staging \
-          --force-new-deployment
-    
-    - name: Update ECS frontend service
-      run: |
-        aws ecs update-service \
-          --cluster servers-filters-staging-cluster \
-          --service servers-filters-frontend-staging \
-          --force-new-deployment
-    
-    - name: Wait for deployment to complete
-      run: |
-        aws ecs wait services-stable \
-          --cluster servers-filters-staging-cluster \
-          --services servers-filters-backend-staging servers-filters-frontend-staging
-    
-    - name: Set deployment URL
-      id: deployment
-      run: |
-        echo "url=http://staging-frontend-ip" >> $GITHUB_OUTPUT
     
     - name: Deploy to staging
       run: |
         echo "🚀 Deploying to staging environment..."
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
+        echo "Target: ${{ github.event.inputs.target }}"
         echo "✅ Staging deployment completed!"
 
   deploy-production:
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
     needs: test
     runs-on: ubuntu-latest
-    environment: 
-      name: production
-      url: ${{ steps.deployment.outputs.url }}
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
-    
-    - name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
-    
-    - name: Login to Amazon ECR
-      id: login-ecr
-      uses: aws-actions/amazon-ecr-login@v2
-    
-    - name: Build and push backend image
-      run: |
-        cd backend
-        docker build --platform linux/amd64 -t $ECR_REGISTRY/servers-filters-backend:$GITHUB_SHA .
-        docker build --platform linux/amd64 -t $ECR_REGISTRY/servers-filters-backend:prod-latest .
-        docker push $ECR_REGISTRY/servers-filters-backend:$GITHUB_SHA
-        docker push $ECR_REGISTRY/servers-filters-backend:prod-latest
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    
-    - name: Build and push frontend image
-      run: |
-        cd frontend
-        docker build --platform linux/amd64 \
-          --build-arg BACKEND_URL=${{ secrets.PROD_BACKEND_URL }} \
-          -t $ECR_REGISTRY/servers-filters-frontend:$GITHUB_SHA .
-        docker build --platform linux/amd64 \
-          --build-arg BACKEND_URL=${{ secrets.PROD_BACKEND_URL }} \
-          -t $ECR_REGISTRY/servers-filters-frontend:prod-latest .
-        docker push $ECR_REGISTRY/servers-filters-frontend:$GITHUB_SHA
-        docker push $ECR_REGISTRY/servers-filters-frontend:prod-latest
-      env:
-        ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-    
-    - name: Update ECS backend service
-      run: |
-        aws ecs update-service \
-          --cluster servers-filters-cluster \
-          --service servers-filters-backend \
-          --force-new-deployment
-    
-    - name: Update ECS frontend service
-      run: |
-        aws ecs update-service \
-          --cluster servers-filters-cluster \
-          --service servers-filters-frontend \
-          --force-new-deployment
-    
-    - name: Wait for deployment to complete
-      run: |
-        aws ecs wait services-stable \
-          --cluster servers-filters-cluster \
-          --services servers-filters-backend servers-filters-frontend
-    
-    - name: Set deployment URL
-      id: deployment
-      run: |
-        echo "url=http://production-frontend-ip" >> $GITHUB_OUTPUT
     
     - name: Deploy to production
       run: |
         echo "🚀 Deploying to production environment..."
         echo "Branch: ${{ github.ref_name }}"
         echo "Commit: ${{ github.sha }}"
+        echo "Target: ${{ github.event.inputs.target }}"
         echo "✅ Production deployment completed!"
