@@ -1,20 +1,10 @@
-name: CI/CD Pipeline
+name: CI Pipeline
 
 on:
   push:
     branches: [ main, staging ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:
-    inputs:
-      target:
-        description: 'Deploy target environment'
-        required: true
-        default: 'staging'
-        type: choice
-        options:
-          - staging
-          - production
 
 jobs:
   test:
@@ -69,35 +59,3 @@ jobs:
         # Test if containers are running
         docker compose ps
         docker compose down
-
-  deploy-staging:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'staging'
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to staging
-      run: |
-        echo "🚀 Deploying to staging environment..."
-        echo "Branch: ${{ github.ref_name }}"
-        echo "Commit: ${{ github.sha }}"
-        echo "Target: ${{ github.event.inputs.target }}"
-        echo "✅ Staging deployment completed!"
-
-  deploy-production:
-    if: github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production'
-    needs: test
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-    
-    - name: Deploy to production
-      run: |
-        echo "🚀 Deploying to production environment..."
-        echo "Branch: ${{ github.ref_name }}"
-        echo "Commit: ${{ github.sha }}"
-        echo "Target: ${{ github.event.inputs.target }}"
-        echo "✅ Production deployment completed!"
