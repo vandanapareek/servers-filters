@@ -1,5 +1,5 @@
-# Multi-stage build for Vue.js frontend
-FROM --platform=linux/amd64 node:20-alpine AS builder
+# Simplified Vue.js frontend
+FROM --platform=linux/amd64 node:20-alpine
 
 # Set working directory
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY . .
@@ -16,28 +16,20 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Production stage with nginx
-FROM --platform=linux/amd64 nginx:alpine
+# Install nginx
+RUN apk add --no-cache nginx
 
-# Accept backend URL at build time to bake per-environment config
-ARG BACKEND_URL
-ENV BACKEND_URL=${BACKEND_URL}
+# Create nginx directories
+RUN mkdir -p /usr/share/nginx/html
 
-# Copy built assets from builder stage
-COPY --from=builder /app/dist /usr/share/nginx/html
-
-# Copy nginx configuration
+# Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Inject BACKEND_URL into nginx.conf
-RUN sh -c 'sed -i "s|\${BACKEND_URL}|${BACKEND_URL}|g" /etc/nginx/nginx.conf'
+# Copy built files
+RUN cp -r dist/* /usr/share/nginx/html/
 
 # Expose port
 EXPOSE 80
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80 || exit 1
 
 # Start nginx
 CMD ["nginx", "-g", "daemon off;"]

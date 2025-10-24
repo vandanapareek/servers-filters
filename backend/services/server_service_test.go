@@ -43,10 +43,31 @@ func (m *MockServerRepository) GetServers(ctx context.Context, filters models.Se
 			}
 		}
 
+		// Apply storage filter (TB to GB conversion)
+		if filters.StorageMin != nil && server.StorageGB != nil && *server.StorageGB < *filters.StorageMin {
+			continue
+		}
+		if filters.StorageMax != nil && server.StorageGB != nil && *server.StorageGB > *filters.StorageMax {
+			continue
+		}
+
 		filteredServers = append(filteredServers, server)
 	}
 
-	return filteredServers, int64(len(filteredServers)), nil
+	// Apply pagination
+	total := int64(len(filteredServers))
+	start := (filters.Page - 1) * filters.PerPage
+	end := start + filters.PerPage
+
+	if start >= len(filteredServers) {
+		return []models.Server{}, total, nil
+	}
+
+	if end > len(filteredServers) {
+		end = len(filteredServers)
+	}
+
+	return filteredServers[start:end], total, nil
 }
 
 func (m *MockServerRepository) GetServerByID(ctx context.Context, id int) (*models.Server, error) {
@@ -191,6 +212,16 @@ func TestServerService_GetServers(t *testing.T) {
 			},
 			expected: 1,
 		},
+		{
+			name: "Get servers with storage filter (TB values)",
+			request: dto.ServerListRequest{
+				StorageMin: float64Ptr(1.0), // 1TB
+				StorageMax: float64Ptr(5.0), // 5TB
+				Page:       1,
+				PerPage:    20,
+			},
+			expected: 1, // Only the 4TB server should match
+		},
 	}
 
 	for _, tt := range tests {
@@ -275,7 +306,8 @@ func TestServerService_GetLocations(t *testing.T) {
 func TestServerService_GetMetrics(t *testing.T) {
 	mockMetrics := &models.ServerMetrics{
 		TotalServers:   5,
-		AveragePrice:   105.9,
+		MinPrice:       35.99,
+		MaxPrice:       4662.99,
 		LocationsCount: 4,
 		LastUpdated:    time.Now(),
 	}
@@ -296,8 +328,158 @@ func TestServerService_GetMetrics(t *testing.T) {
 		t.Errorf("GetMetrics() got %d total servers, want %d", metrics.TotalServers, mockMetrics.TotalServers)
 	}
 
-	if metrics.AveragePrice != mockMetrics.AveragePrice {
-		t.Errorf("GetMetrics() got %f average price, want %f", metrics.AveragePrice, mockMetrics.AveragePrice)
+	if metrics.MinPrice != mockMetrics.MinPrice {
+		t.Errorf("GetMetrics() got %f min price, want %f", metrics.MinPrice, mockMetrics.MinPrice)
+	}
+
+	if metrics.MaxPrice != mockMetrics.MaxPrice {
+		t.Errorf("GetMetrics() got %f max price, want %f", metrics.MaxPrice, mockMetrics.MaxPrice)
+	}
+}
+
+func TestServerService_ExtractHDDType(t *testing.T) {
+	service := &ServerServiceImpl{}
+
+	tests := []struct {
+		name     string
+		hdd      string
+		expected string
+	}{
+		{
+			name:     "SSD extraction",
+			hdd:      "4x480GBSSD",
+			expected: "SSD",
+		},
+		{
+			name:     "SATA2 extraction",
+			hdd:      "2x2TBSATA2",
+			expected: "SATA2",
+		},
+		{
+			name:     "SATA3 extraction",
+			hdd:      "1x1TBSATA3",
+			expected: "SATA3",
+		},
+		{
+			name:     "NVMe extraction",
+			hdd:      "2x500GBNVMe",
+			expected: "NVME",
+		},
+		{
+			name:     "HDD extraction",
+			hdd:      "1x1TBHDD",
+			expected: "HDD",
+		},
+		{
+			name:     "Case insensitive",
+			hdd:      "4x480GBssd",
+			expected: "SSD",
+		},
+		{
+			name:     "Empty string",
+			hdd:      "",
+			expected: "",
+		},
+		{
+			name:     "Unknown type",
+			hdd:      "2x500GBUnknown",
+			expected: "UNKNOWN",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.extractHDDType(tt.hdd)
+			if result != tt.expected {
+				t.Errorf("extractHDDType(%s) = %s, want %s", tt.hdd, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestServerService_FormatStorageDisplay(t *testing.T) {
+	service := &ServerServiceImpl{}
+
+	tests := []struct {
+		name     string
+		storage  *int
+		expected string
+	}{
+		{
+			name:     "GB storage",
+			storage:  intPtr(500),
+			expected: "500GB",
+		},
+		{
+			name:     "TB storage whole number",
+			storage:  intPtr(4096),
+			expected: "4TB",
+		},
+		{
+			name:     "TB storage with decimal",
+			storage:  intPtr(1920),
+			expected: "1.9TB",
+		},
+		{
+			name:     "Nil storage",
+			storage:  nil,
+			expected: "",
+		},
+		{
+			name:     "Exact 1TB",
+			storage:  intPtr(1024),
+			expected: "1TB",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.formatStorageDisplay(tt.storage)
+			if result != tt.expected {
+				t.Errorf("formatStorageDisplay(%v) = %s, want %s", tt.storage, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestServerService_ConvertModelToDTO(t *testing.T) {
+	service := &ServerServiceImpl{}
+
+	server := models.Server{
+		ID:           1,
+		Model:        "Dell R740",
+		CPU:          stringPtr("Intel Xeon"),
+		RAMGB:        intPtr(32),
+		HDD:          "2x2TBSATA2",
+		StorageGB:    intPtr(4096),
+		LocationCity: stringPtr("Amsterdam"),
+		LocationCode: stringPtr("AMS-01"),
+		PriceEUR:     float64Ptr(89.0),
+		RawPrice:     "€89.00",
+		RawRAM:       "32GB DDR4",
+		RawHDD:       "2x2TB SATA2",
+		CreatedAt:    time.Now(),
+	}
+
+	dto := service.convertModelToDTO(server)
+
+	// Test basic fields
+	if dto.ID != server.ID {
+		t.Errorf("convertModelToDTO() ID = %d, want %d", dto.ID, server.ID)
+	}
+
+	if dto.Model != server.Model {
+		t.Errorf("convertModelToDTO() Model = %s, want %s", dto.Model, server.Model)
+	}
+
+	// Test HDD type extraction
+	if dto.HDDType != "SATA2" {
+		t.Errorf("convertModelToDTO() HDDType = %s, want SATA2", dto.HDDType)
+	}
+
+	// Test storage display formatting
+	if dto.StorageDisplay != "4TB" {
+		t.Errorf("convertModelToDTO() StorageDisplay = %s, want 4TB", dto.StorageDisplay)
 	}
 }
 

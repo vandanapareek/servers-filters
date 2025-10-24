@@ -108,8 +108,9 @@ def parse_location(location_str: str) -> Tuple[Optional[str], Optional[str]]:
 
     location_str = str(location_str)
 
-    # Pattern for city-code format
-    match = re.match(r'^([A-Za-z\s]+?)([A-Z]{2,3}-\d+)$', location_str)
+    # Pattern for city-code format - updated to handle periods and 3-letter codes
+    # Examples: "AmsterdamAMS-01", "Washington D.C.WDC-01", "FrankfurtFRA-10"
+    match = re.match(r'^([A-Za-z\s\.]+?)([A-Z]{2,4}-\d+)$', location_str)
     if match:
         city = match.group(1).strip()
         code = match.group(2).strip()

@@ -131,7 +131,8 @@ func (sf *ServerFilters) Scan(value interface{}) error {
 // ServerMetrics represents metrics about servers
 type ServerMetrics struct {
 	TotalServers   int64     `json:"total_servers"`
-	AveragePrice   float64   `json:"average_price"`
+	MinPrice       float64   `json:"min_price"`
+	MaxPrice       float64   `json:"max_price"`
 	LocationsCount int64     `json:"locations_count"`
 	LastUpdated    time.Time `json:"last_updated"`
 }

@@ -24,6 +24,9 @@ import (
 )
 
 func main() {
+	// Test debug log
+	fmt.Println("🔥 MAIN DEBUG: Application starting...")
+	
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {

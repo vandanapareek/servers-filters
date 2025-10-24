@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -35,8 +36,8 @@ func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 		RAMMin:     parseIntParam(r.URL.Query().Get("ram_min")),
 		RAMMax:     parseIntParam(r.URL.Query().Get("ram_max")),
 		RAMValues:  parseIntArrayParam(r.URL.Query().Get("ram_values")),
-		StorageMin: parseIntParam(r.URL.Query().Get("storage_min")),
-		StorageMax: parseIntParam(r.URL.Query().Get("storage_max")),
+		StorageMin: parseFloatParam(r.URL.Query().Get("storage_min")),
+		StorageMax: parseFloatParam(r.URL.Query().Get("storage_max")),
 		HDD:        r.URL.Query().Get("hdd"),
 		PriceMin:   parseFloatParam(r.URL.Query().Get("price_min")),
 		PriceMax:   parseFloatParam(r.URL.Query().Get("price_max")),
@@ -44,6 +45,11 @@ func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 		Page:       parseIntParamWithDefault(r.URL.Query().Get("page"), 1),
 		PerPage:    parseIntParamWithDefault(r.URL.Query().Get("per_page"), 20),
 	}
+
+	// Debug: Check what we receive from API
+	fmt.Println("🔥 API DEBUG: Starting handler")
+	fmt.Println("🔥 API DEBUG: storage_max raw='" + r.URL.Query().Get("storage_max") + "'")
+	fmt.Println("🔥 API DEBUG: storage_max parsed=" + fmt.Sprintf("%v", req.StorageMax))
 
 	// Get servers
 	response, err := h.serverService.GetServers(r.Context(), req)

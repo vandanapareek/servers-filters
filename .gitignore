@@ -63,3 +63,10 @@ coverage/
 tmp/
 temp/
 .env*
+
+# AWS CLI installer
+AWSCLIV2.pkg
+
+# Database backups
+*.backup
+*_backup.db

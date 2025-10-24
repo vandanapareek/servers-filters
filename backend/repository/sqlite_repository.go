@@ -59,9 +59,21 @@ func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.Server
 
 	// Execute query
 	var servers []models.Server
+	fmt.Printf("DEBUG REPO: Query=%s, Args=%v\n", query, args)
 	err := r.db.SelectContext(ctx, &servers, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get servers: %w", err)
+	}
+	fmt.Printf("DEBUG REPO: Returned %d servers\n", len(servers))
+
+	// Also test the query manually
+	fmt.Printf("DEBUG REPO: Testing query manually...\n")
+	var testServers []models.Server
+	testErr := r.db.SelectContext(ctx, &testServers, query, args...)
+	if testErr != nil {
+		fmt.Printf("DEBUG REPO: Manual test failed: %v\n", testErr)
+	} else {
+		fmt.Printf("DEBUG REPO: Manual test returned %d servers\n", len(testServers))
 	}
 
 	// Get total count
@@ -115,10 +127,6 @@ func (r *SQLiteRepository) GetLocations(ctx context.Context) ([]string, error) {
 		SELECT DISTINCT location_city 
 		FROM servers 
 		WHERE location_city IS NOT NULL AND location_city != ''
-		UNION
-		SELECT DISTINCT location_code 
-		FROM servers 
-		WHERE location_code IS NOT NULL AND location_code != ''
 		ORDER BY location_city
 	`
 
@@ -136,15 +144,17 @@ func (r *SQLiteRepository) GetMetrics(ctx context.Context) (*models.ServerMetric
 	query := `
 		SELECT 
 			COUNT(*) as total_servers,
-			AVG(price_eur) as average_price,
+			MIN(price_eur) as min_price,
+			MAX(price_eur) as max_price,
 			COUNT(DISTINCT location_city) as locations_count
 		FROM servers
-		WHERE price_eur IS NOT NULL
+		WHERE price_eur IS NOT NULL AND location_city IS NOT NULL AND location_city != ''
 	`
 
 	var result struct {
 		TotalServers   int64   `db:"total_servers"`
-		AveragePrice   float64 `db:"average_price"`
+		MinPrice       float64 `db:"min_price"`
+		MaxPrice       float64 `db:"max_price"`
 		LocationsCount int64   `db:"locations_count"`
 	}
 
@@ -155,7 +165,8 @@ func (r *SQLiteRepository) GetMetrics(ctx context.Context) (*models.ServerMetric
 
 	metrics := &models.ServerMetrics{
 		TotalServers:   result.TotalServers,
-		AveragePrice:   result.AveragePrice,
+		MinPrice:       result.MinPrice,
+		MaxPrice:       result.MaxPrice,
 		LocationsCount: result.LocationsCount,
 		LastUpdated:    time.Now(),
 	}
@@ -210,14 +221,16 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 		}
 	}
 
-	// Storage range filter
+	// Storage range filter (now receives GB values from service layer)
 	if filters.StorageMin != nil {
 		conditions = append(conditions, "storage_gb >= ?")
 		args = append(args, *filters.StorageMin)
+		fmt.Printf("🔥 CUSTOM DEBUG: StorageMin filter added: %d GB\n", *filters.StorageMin)
 	}
 	if filters.StorageMax != nil {
 		conditions = append(conditions, "storage_gb <= ?")
 		args = append(args, *filters.StorageMax)
+		fmt.Printf("🔥 CUSTOM DEBUG: StorageMax filter added: %d GB\n", *filters.StorageMax)
 	}
 
 	// HDD filter
