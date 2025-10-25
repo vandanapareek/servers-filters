@@ -1,8 +1,5 @@
 # Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
 # Environment variables
 .env
@@ -10,16 +7,10 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
-.env.development
-.env.production
 
 # Build outputs
 dist/
 build/
-*.exe
-*.dll
-*.so
-*.dylib
 
 # Go specific
 *.test
@@ -53,20 +44,16 @@ pids/
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage directory
 coverage/
-
-# Docker
-.dockerignore
 
 # Temporary files
 tmp/
 temp/
-.env*
-
-# AWS CLI installer
-AWSCLIV2.pkg
 
 # Database backups
 *.backup
 *_backup.db
+
+# Compiled binaries
+servers-listing
