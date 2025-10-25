@@ -44,7 +44,7 @@ jobs:
     - name: Build Go application
       run: |
         cd backend
-        go build -o servers-listing main.go
+        go build -o servers-filters main.go
     
     - name: Build frontend
       run: |

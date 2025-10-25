@@ -17,10 +17,10 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=1 go build -o servers-listing main.go
+RUN CGO_ENABLED=1 go build -o servers-filters main.go
 
 # Expose port
 EXPOSE 8080
 
 # Run the application
-CMD ["./servers-listing"]
+CMD ["./servers-filters"]

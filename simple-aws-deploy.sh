@@ -23,7 +23,7 @@ aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS 
 # Build and push backend (no changes needed)
 echo -e "${YELLOW}🏗️  Building backend image for AMD64...${NC}"
 cd backend
-docker build -t servers-filters-backend:amd64 .
+docker build -f Dockerfile.local -t servers-filters-backend:amd64 .
 docker tag servers-filters-backend:amd64 ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/servers-filters-backend:amd64
 docker push ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/servers-filters-backend:amd64
 cd ..
