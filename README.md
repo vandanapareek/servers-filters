@@ -69,12 +69,20 @@ npm install
 npm run dev
 ```
 
-## API Endpoints
+## API Documentation
 
-- `GET /servers` - List servers with filtering
-- `GET /servers/{id}` - Get server by ID
-- `GET /locations` - Get available locations
-- `GET /metrics` - Get server statistics
+### Postman Collection
+Import the provided Postman collection to test all API endpoints:
+
+**File**: `ServersFilters.postman_collection.json`
+
+**Setup**:
+1. Open Postman
+2. Import the collection file
+3. Set base URL to your backend URL
+4. Test all endpoints with examples
+
+For detailed API documentation, see [API-DOCUMENTATION.md](API-DOCUMENTATION.md)
 
 ## AWS Deployment
 
