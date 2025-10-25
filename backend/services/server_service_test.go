@@ -70,14 +70,6 @@ func (m *MockServerRepository) GetServers(ctx context.Context, filters models.Se
 	return filteredServers[start:end], total, nil
 }
 
-func (m *MockServerRepository) GetServerByID(ctx context.Context, id int) (*models.Server, error) {
-	for _, server := range m.servers {
-		if server.ID == id {
-			return &server, nil
-		}
-	}
-	return nil, nil
-}
 
 func (m *MockServerRepository) GetServerCount(ctx context.Context, filters models.ServerFilters) (int64, error) {
 	// Apply same filtering logic as GetServers
@@ -242,46 +234,6 @@ func TestServerService_GetServers(t *testing.T) {
 	}
 }
 
-func TestServerService_GetServerByID(t *testing.T) {
-	mockServer := models.Server{
-		ID:           1,
-		Model:        "Dell R740",
-		CPU:          stringPtr("Intel Xeon"),
-		RAMGB:        intPtr(32),
-		HDD:          "2x2TB SATA2",
-		StorageGB:    intPtr(4096),
-		LocationCity: stringPtr("Amsterdam"),
-		LocationCode: stringPtr("AMS-01"),
-		PriceEUR:     float64Ptr(89.0),
-		RawPrice:     "€89.00",
-		RawRAM:       "32GB DDR4",
-		RawHDD:       "2x2TB SATA2",
-		CreatedAt:    time.Now(),
-	}
-
-	mockRepo := &MockServerRepository{
-		servers: []models.Server{mockServer},
-	}
-	mockCache := &MockCacheRepository{}
-
-	service := NewServerService(mockRepo, mockCache, 300)
-
-	// Test existing server
-	response, err := service.GetServerByID(context.Background(), 1)
-	if err != nil {
-		t.Fatalf("GetServerByID() error = %v", err)
-	}
-
-	if response.Data.ID != 1 {
-		t.Errorf("GetServerByID() got ID = %d, want 1", response.Data.ID)
-	}
-
-	// Test non-existing server
-	_, err = service.GetServerByID(context.Background(), 999)
-	if err == nil {
-		t.Error("GetServerByID() expected error for non-existing server")
-	}
-}
 
 func TestServerService_GetLocations(t *testing.T) {
 	mockLocations := []string{"Amsterdam", "New York", "London"}

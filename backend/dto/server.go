@@ -33,8 +33,6 @@ type ServerListRequest struct {
 	StorageMin *float64 `json:"storage_min" form:"storage_min"`
 	StorageMax *float64 `json:"storage_max" form:"storage_max"`
 	HDD        string   `json:"hdd" form:"hdd"`
-	PriceMin   *float64 `json:"price_min" form:"price_min"`
-	PriceMax   *float64 `json:"price_max" form:"price_max"`
 	Sort       string   `json:"sort" form:"sort"`
 	Page       int      `json:"page" form:"page"`
 	PerPage    int      `json:"per_page" form:"per_page"`
@@ -54,23 +52,12 @@ type ServerListResponse struct {
 	Pagination PaginationDTO `json:"pagination"`
 }
 
-// Response for server detail endpoint
-type ServerDetailResponse struct {
-	Data ServerDTO `json:"data"`
-}
 
 // Error response
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message,omitempty"`
 	Code    int    `json:"code"`
-}
-
-// Health check response
-type HealthResponse struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
-	Version   string    `json:"version"`
 }
 
 // Metrics response

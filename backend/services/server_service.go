@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"servers-filters/dto"
+	"servers-filters/internal/constants"
 	"servers-filters/models"
 	"servers-filters/repository"
 )
@@ -32,13 +33,13 @@ func NewServerService(serverRepo repository.ServerRepository, cacheRepo reposito
 func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRequest) (*dto.ServerListResponse, error) {
 	// Normalize request parameters
 	if req.Page <= 0 {
-		req.Page = 1
+		req.Page = constants.DefaultPage
 	}
 	if req.PerPage <= 0 {
-		req.PerPage = 20
+		req.PerPage = constants.DefaultPerPage
 	}
-	if req.PerPage > 100 {
-		req.PerPage = 100
+	if req.PerPage > constants.MaxPerPage {
+		req.PerPage = constants.MaxPerPage
 	}
 
 	// Convert request to model filters
@@ -99,51 +100,6 @@ func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRe
 	return response, nil
 }
 
-// Get server by its ID
-func (s *ServerServiceImpl) GetServerByID(ctx context.Context, id int) (*dto.ServerDetailResponse, error) {
-	// Generate cache key
-	cacheKey := fmt.Sprintf("server:%d", id)
-
-	// Try to get from cache first
-	var response *dto.ServerDetailResponse
-	if s.cacheRepo != nil {
-		cached, err := s.cacheRepo.Get(ctx, cacheKey)
-		if err == nil && cached != "" {
-			err = json.Unmarshal([]byte(cached), &response)
-			if err == nil {
-				return response, nil
-			}
-		}
-	}
-
-	// Get from database
-	server, err := s.serverRepo.GetServerByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get server: %w", err)
-	}
-
-	if server == nil {
-		return nil, fmt.Errorf("server not found")
-	}
-
-	// Convert to DTO
-	serverDTO := s.convertModelToDTO(*server)
-
-	response = &dto.ServerDetailResponse{
-		Data: serverDTO,
-	}
-
-	// Cache the response
-	if s.cacheRepo != nil {
-		cached, err := json.Marshal(response)
-		if err == nil {
-			s.cacheRepo.Set(ctx, cacheKey, string(cached), s.cacheTTL)
-		}
-	}
-
-	return response, nil
-}
-
 // Get all unique locations
 func (s *ServerServiceImpl) GetLocations(ctx context.Context) ([]string, error) {
 	// Generate cache key
@@ -181,7 +137,7 @@ func (s *ServerServiceImpl) GetLocations(ctx context.Context) ([]string, error) 
 // Get metrics about the servers
 func (s *ServerServiceImpl) GetMetrics(ctx context.Context) (*dto.MetricsResponse, error) {
 	// Generate cache key
-	cacheKey := "metrics"
+	cacheKey := constants.MetricsCacheKey
 
 	// Try to get from cache first
 	var response *dto.MetricsResponse
@@ -228,14 +184,14 @@ func (s *ServerServiceImpl) convertRequestToFilters(req dto.ServerListRequest) m
 
 	if req.StorageMin != nil {
 		// Convert TB to GB: multiply by 1024
-		gb := int(*req.StorageMin * 1024)
+		gb := int(*req.StorageMin * constants.TBToGBMultiplier)
 		storageMinGB = &gb
 		fmt.Printf("🔥 TB CONVERSION: %.2f TB -> %d GB\n", *req.StorageMin, gb)
 	}
 
 	if req.StorageMax != nil {
 		// Convert TB to GB: multiply by 1024
-		gb := int(*req.StorageMax * 1024)
+		gb := int(*req.StorageMax * constants.TBToGBMultiplier)
 		storageMaxGB = &gb
 		fmt.Printf("🔥 TB CONVERSION: %.2f TB -> %d GB\n", *req.StorageMax, gb)
 	}
@@ -249,8 +205,6 @@ func (s *ServerServiceImpl) convertRequestToFilters(req dto.ServerListRequest) m
 		StorageMin: storageMinGB,
 		StorageMax: storageMaxGB,
 		HDD:        req.HDD,
-		PriceMin:   req.PriceMin,
-		PriceMax:   req.PriceMax,
 		Sort:       req.Sort,
 		Page:       req.Page,
 		PerPage:    req.PerPage,
@@ -350,8 +304,6 @@ func (s *ServerServiceImpl) generateCacheKey(prefix string, filters models.Serve
 		"storage_min": filters.StorageMin,
 		"storage_max": filters.StorageMax,
 		"hdd":         filters.HDD,
-		"price_min":   filters.PriceMin,
-		"price_max":   filters.PriceMax,
 		"sort":        filters.Sort,
 		"page":        filters.Page,
 		"per_page":    filters.PerPage,

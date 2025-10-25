@@ -39,10 +39,6 @@ export const serverService = {
         return api.get('/servers', { params })
     },
 
-    // Get server by ID
-    getServerById(id) {
-        return api.get(`/servers/${id}`)
-    },
 
     // Get locations
     getLocations() {
@@ -54,10 +50,6 @@ export const serverService = {
         return api.get('/metrics')
     },
 
-    // Health check
-    getHealth() {
-        return api.get('/health')
-    }
 }
 
 export default api

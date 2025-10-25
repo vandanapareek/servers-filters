@@ -11,8 +11,6 @@ type ServerService interface {
 	// Get servers with filters and pagination
 	GetServers(ctx context.Context, req dto.ServerListRequest) (*dto.ServerListResponse, error)
 
-	// Get server by its ID
-	GetServerByID(ctx context.Context, id int) (*dto.ServerDetailResponse, error)
 
 	// Get all unique locations
 	GetLocations(ctx context.Context) ([]string, error)

@@ -11,8 +11,6 @@ type ServerRepository interface {
 	// Get servers with filters and pagination
 	GetServers(ctx context.Context, filters models.ServerFilters) ([]models.Server, int64, error)
 
-	// Get server by its ID
-	GetServerByID(ctx context.Context, id int) (*models.Server, error)
 
 	// Get total count of servers matching the filters
 	GetServerCount(ctx context.Context, filters models.ServerFilters) (int64, error)

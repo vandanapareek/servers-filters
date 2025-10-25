@@ -5,13 +5,12 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"servers-filters/dto"
+	"servers-filters/internal/constants"
 	"servers-filters/internal/logger"
 	"servers-filters/services"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
 
@@ -39,58 +38,25 @@ func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 		StorageMin: parseFloatParam(r.URL.Query().Get("storage_min")),
 		StorageMax: parseFloatParam(r.URL.Query().Get("storage_max")),
 		HDD:        r.URL.Query().Get("hdd"),
-		PriceMin:   parseFloatParam(r.URL.Query().Get("price_min")),
-		PriceMax:   parseFloatParam(r.URL.Query().Get("price_max")),
 		Sort:       r.URL.Query().Get("sort"),
-		Page:       parseIntParamWithDefault(r.URL.Query().Get("page"), 1),
-		PerPage:    parseIntParamWithDefault(r.URL.Query().Get("per_page"), 20),
+		Page:       parseIntParamWithDefault(r.URL.Query().Get("page"), constants.DefaultPage),
+		PerPage:    parseIntParamWithDefault(r.URL.Query().Get("per_page"), constants.DefaultPerPage),
 	}
 
 	// Debug: Check what we receive from API
 	fmt.Println("🔥 API DEBUG: Starting handler")
-	fmt.Println("🔥 API DEBUG: storage_max raw='" + r.URL.Query().Get("storage_max") + "'")
-	fmt.Println("🔥 API DEBUG: storage_max parsed=" + fmt.Sprintf("%v", req.StorageMax))
+	fmt.Printf("🔥 API DEBUG: storage_max raw='%s'\n", r.URL.Query().Get("storage_max"))
+	fmt.Printf("🔥 API DEBUG: storage_max parsed=%v\n", req.StorageMax)
 
 	// Get servers
 	response, err := h.serverService.GetServers(r.Context(), req)
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("Failed to get servers")
-		render.Status(r, http.StatusInternalServerError)
+		logger.GetLogger().WithError(err).Error(constants.ErrorFailedToGetServers)
+		render.Status(r, constants.StatusInternalServerError)
 		render.JSON(w, r, dto.ErrorResponse{
-			Error:   "Internal Server Error",
-			Message: "Failed to retrieve servers",
-			Code:    http.StatusInternalServerError,
-		})
-		return
-	}
-
-	render.JSON(w, r, response)
-}
-
-// GetServerByID handles GET /servers/{id}
-func (h *ServerHandler) GetServerByID(w http.ResponseWriter, r *http.Request) {
-	// Parse ID from URL
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		render.Status(r, http.StatusBadRequest)
-		render.JSON(w, r, dto.ErrorResponse{
-			Error:   "Bad Request",
-			Message: "Invalid server ID",
-			Code:    http.StatusBadRequest,
-		})
-		return
-	}
-
-	// Get server
-	response, err := h.serverService.GetServerByID(r.Context(), id)
-	if err != nil {
-		logger.GetLogger().WithError(err).WithField("id", id).Error("Failed to get server")
-		render.Status(r, http.StatusNotFound)
-		render.JSON(w, r, dto.ErrorResponse{
-			Error:   "Not Found",
-			Message: "Server not found",
-			Code:    http.StatusNotFound,
+			Error:   constants.ErrorInternalServerError,
+			Message: constants.ErrorFailedToGetServers,
+			Code:    constants.StatusInternalServerError,
 		})
 		return
 	}
@@ -103,12 +69,12 @@ func (h *ServerHandler) GetLocations(w http.ResponseWriter, r *http.Request) {
 	// Get locations
 	locations, err := h.serverService.GetLocations(r.Context())
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("Failed to get locations")
-		render.Status(r, http.StatusInternalServerError)
+		logger.GetLogger().WithError(err).Error(constants.ErrorFailedToGetLocations)
+		render.Status(r, constants.StatusInternalServerError)
 		render.JSON(w, r, dto.ErrorResponse{
-			Error:   "Internal Server Error",
-			Message: "Failed to retrieve locations",
-			Code:    http.StatusInternalServerError,
+			Error:   constants.ErrorInternalServerError,
+			Message: constants.ErrorFailedToGetLocations,
+			Code:    constants.StatusInternalServerError,
 		})
 		return
 	}
@@ -123,25 +89,14 @@ func (h *ServerHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	// Get metrics
 	response, err := h.serverService.GetMetrics(r.Context())
 	if err != nil {
-		logger.GetLogger().WithError(err).Error("Failed to get metrics")
-		render.Status(r, http.StatusInternalServerError)
+		logger.GetLogger().WithError(err).Error(constants.ErrorFailedToGetMetrics)
+		render.Status(r, constants.StatusInternalServerError)
 		render.JSON(w, r, dto.ErrorResponse{
-			Error:   "Internal Server Error",
-			Message: "Failed to retrieve metrics",
-			Code:    http.StatusInternalServerError,
+			Error:   constants.ErrorInternalServerError,
+			Message: constants.ErrorFailedToGetMetrics,
+			Code:    constants.StatusInternalServerError,
 		})
 		return
-	}
-
-	render.JSON(w, r, response)
-}
-
-// Health handles GET /health
-func (h *ServerHandler) Health(w http.ResponseWriter, r *http.Request) {
-	response := dto.HealthResponse{
-		Status:    "healthy",
-		Timestamp: time.Now(),
-		Version:   "1.0.0",
 	}
 
 	render.JSON(w, r, response)

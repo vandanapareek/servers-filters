@@ -2,11 +2,11 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"strings"
 	"time"
 
+	"servers-filters/internal/constants"
 	"servers-filters/models"
 
 	"github.com/jmoiron/sqlx"
@@ -33,10 +33,10 @@ func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.Server
 	// Build LIMIT and OFFSET
 	limit := filters.PerPage
 	if limit <= 0 {
-		limit = 20
+		limit = constants.DefaultPerPage
 	}
-	if limit > 100 {
-		limit = 100
+	if limit > constants.MaxPerPage {
+		limit = constants.MaxPerPage
 	}
 
 	offset := (filters.Page - 1) * limit
@@ -83,27 +83,6 @@ func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.Server
 	}
 
 	return servers, total, nil
-}
-
-// GetServerByID retrieves a server by its ID
-func (r *SQLiteRepository) GetServerByID(ctx context.Context, id int) (*models.Server, error) {
-	query := `
-		SELECT id, model, cpu, ram_gb, hdd, storage_gb, location_city, 
-		       location_code, price_eur, raw_price, raw_ram, raw_hdd, created_at
-		FROM servers
-		WHERE id = ?
-	`
-
-	var server models.Server
-	err := r.db.GetContext(ctx, &server, query, id)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get server by ID: %w", err)
-	}
-
-	return &server, nil
 }
 
 // GetServerCount returns the total count of servers matching the filters
@@ -179,11 +158,11 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 	var conditions []string
 	var args []interface{}
 
-	// Text search
+	// Text search (model only)
 	if filters.Query != "" {
-		conditions = append(conditions, "(model LIKE ? OR cpu LIKE ?)")
+		conditions = append(conditions, "model LIKE ?")
 		searchTerm := "%" + filters.Query + "%"
-		args = append(args, searchTerm, searchTerm)
+		args = append(args, searchTerm)
 	}
 
 	// Location filter
@@ -237,16 +216,6 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 	if filters.HDD != "" {
 		conditions = append(conditions, "hdd LIKE ?")
 		args = append(args, "%"+filters.HDD+"%")
-	}
-
-	// Price range filter
-	if filters.PriceMin != nil {
-		conditions = append(conditions, "price_eur >= ?")
-		args = append(args, *filters.PriceMin)
-	}
-	if filters.PriceMax != nil {
-		conditions = append(conditions, "price_eur <= ?")
-		args = append(args, *filters.PriceMax)
 	}
 
 	if len(conditions) == 0 {

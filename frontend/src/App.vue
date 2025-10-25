@@ -14,7 +14,7 @@
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="query">Search</label>
-                    <input id="query" v-model="filters.query" type="text" placeholder="Search by model or CPU..."
+                    <input id="query" v-model="filters.query" type="text" placeholder="Search by model..."
                         @input="debouncedSearch" />
                 </div>
             </div>
@@ -214,8 +214,6 @@ import {
     DEFAULT_PAGE, 
     DEFAULT_PER_PAGE, 
     DEBOUNCE_DELAY,
-    CURRENCY_SYMBOL,
-    PRICE_DECIMAL_PLACES,
     STORAGE_UNITS
 } from './constants/index.js'
 

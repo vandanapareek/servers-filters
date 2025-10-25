@@ -18,6 +18,7 @@ import (
 
 	"servers-filters/handlers"
 	"servers-filters/internal/config"
+	"servers-filters/internal/constants"
 	"servers-filters/internal/logger"
 	"servers-filters/repository"
 	"servers-filters/services"
@@ -26,7 +27,7 @@ import (
 func main() {
 	// Test debug log
 	fmt.Println("🔥 MAIN DEBUG: Application starting...")
-	
+
 	// Load configuration
 	cfg, err := config.Load()
 	if err != nil {
@@ -98,7 +99,7 @@ func main() {
 	log.Info("Server shutting down...")
 
 	// Create a deadline for shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), constants.DefaultShutdownTimeout*time.Second)
 	defer cancel()
 
 	// Shutdown server
@@ -167,28 +168,11 @@ func setupRouter(serverHandler *handlers.ServerHandler) *chi.Mux {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		ExposedHeaders:   []string{"Link"},
 		AllowCredentials: false,
-		MaxAge:           300,
+		MaxAge:           constants.DefaultCORSMaxAge,
 	}))
 
-	// Health check
-	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
-	})
-
 	// API routes
-	router.Route("/api/v1", func(r chi.Router) {
-		// Server routes
-		r.Get("/servers", serverHandler.GetServers)
-		r.Get("/servers/{id}", serverHandler.GetServerByID)
-		r.Get("/locations", serverHandler.GetLocations)
-		r.Get("/metrics", serverHandler.GetMetrics)
-	})
-
-	// Legacy routes for backward compatibility
 	router.Get("/servers", serverHandler.GetServers)
-	router.Get("/servers/{id}", serverHandler.GetServerByID)
 	router.Get("/locations", serverHandler.GetLocations)
 	router.Get("/metrics", serverHandler.GetMetrics)
 

@@ -54,10 +54,6 @@ type ServerListResponse struct {
 	Pagination Pagination `json:"pagination"`
 }
 
-// ServerDetailResponse represents the response for server detail endpoint
-type ServerDetailResponse struct {
-	Data Server `json:"data"`
-}
 
 // SortOption represents a sort option
 type SortOption struct {
