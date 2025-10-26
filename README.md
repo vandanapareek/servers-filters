@@ -135,8 +135,8 @@ Interactive API documentation with Swagger UI:
 
 The application is deployed on AWS ECS with the following URLs:
 
-- **Frontend**: http://44.220.245.64/
-- **Backend API**: http://3.237.50.32:8080/servers
+- **Frontend**: http://54.237.24.242/
+- **Backend API**: http://3.236.4.27:8080/servers
 
 ### Deployment Process
 
@@ -145,8 +145,22 @@ The application is deployed on AWS ECS with the following URLs:
    ./simple-aws-deploy.sh
    ```
 
-2. **Update ECS task definitions** with new image URIs
-3. **Deploy to ECS services**
+2. **Update ECS task definitions** in AWS Console:
+   - Go to ECS → Task Definitions
+   - Update backend task definition with: `916591320534.dkr.ecr.us-east-1.amazonaws.com/servers-filters-backend:arm64`
+   - Update frontend task definition with: `916591320534.dkr.ecr.us-east-1.amazonaws.com/servers-filters-frontend:arm64`
+
+3. **Deploy via AWS Console**:
+   - Go to ECS → Services
+   - Update service to use new task definition revision
+
+### Infrastructure
+- **ECS** for container orchestration
+- **ECR** for Docker image storage
+
+### Environment Variables
+- Frontend: `VITE_API_BASE_URL` (backend API URL)
+- Backend: Database and port configuration
 
 
 ## Testing
