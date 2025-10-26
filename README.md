@@ -192,34 +192,6 @@ The application is deployed on AWS ECS with the following URLs:
 - **ECS** for container orchestration
 - **ECR** for Docker image storage
 
-### Environment Variables
-- Frontend: `VITE_API_BASE_URL` (backend API URL)
-- Backend: Database and port configuration
-
-### Local Development (Without Docker)
-
-When running the frontend and backend services independently:
-
-1. **Backend**: Runs on port `8080` by default
-2. **Frontend**: Runs on port `3000` with proxy configuration
-
-The frontend is configured to proxy API requests to the backend. If you need to override the backend URL, create a `.env.local` file in the frontend directory:
-
-```bash
-# frontend/.env.local
-VITE_API_BASE_URL=http://localhost:8080
-```
-
-**Backend Environment Variables** (optional):
-```bash
-# backend/.env
-SERVER_HOST=0.0.0.0
-SERVER_PORT=8080
-DB_DSN=data/servers.db
-LOG_LEVEL=info
-```
-
-
 ## Testing
 
 Run backend tests:
