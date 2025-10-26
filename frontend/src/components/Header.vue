@@ -13,7 +13,3 @@ export default {
     name: 'Header'
 }
 </script>
-
-<style scoped>
-/* Component-specific styles */
-</style>

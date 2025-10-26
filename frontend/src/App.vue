@@ -1,5 +1,8 @@
 <template>
     <div class="app">
+        <!-- Logo -->
+        <Logo />
+        
         <!-- Header -->
         <Header />
 
@@ -206,6 +209,7 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { serverService } from './services/api.js'
 import Header from './components/Header.vue'
 import Stats from './components/Stats.vue'
+import Logo from './components/Logo.vue'
 import { 
     STORAGE_OPTIONS, 
     RAM_OPTIONS, 
@@ -221,7 +225,8 @@ export default {
     name: 'App',
     components: {
         Header,
-        Stats
+        Stats,
+        Logo
     },
     setup() {
         const servers = ref([])

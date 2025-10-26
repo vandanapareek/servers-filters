@@ -14,7 +14,7 @@
     backdrop-filter: blur(10px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
     padding: 2rem 0;
-    margin: 0 0 2rem 0;
+    margin: 80px 0 2rem 0;
     border-radius: 20px;
 }
 
@@ -25,6 +25,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
+    text-align: center;
 }
 
 .header-text h1 {
@@ -34,6 +35,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 0 0 0.5rem 0;
+    text-align: center;
 }
 
 .header-text p {
@@ -474,9 +476,10 @@
 }
 
 .btn-secondary:hover {
-    background: white;
-    border-color: #667eea;
-    color: #667eea;
+    background: #f8f9fa;
+    border-color: #6c757d;
+    color: #495057;
+    transform: translateY(-1px);
 }
 
 /* Table Styles */
@@ -496,7 +499,7 @@
 }
 
 .table th {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, #e86826, #ff8c42);
     color: white;
     padding: 1.5rem 1rem;
     text-align: left;
@@ -573,9 +576,9 @@
 }
 
 .pagination button:hover:not(:disabled) {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
+    background: #fff4f0;
+    color: #e86826;
+    border-color: #e86826;
     transform: translateY(-2px);
 }
 
@@ -795,11 +798,10 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-    background: #667eea;
-    color: white;
-    border-color: #667eea;
+    background: #fff4f0;
+    color: #e86826;
+    border-color: #e86826;
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .pagination-btn:disabled {
@@ -808,9 +810,9 @@
 }
 
 .pagination-btn.active {
-    background: #667eea;
+    background: #e86826;
     color: white;
-    border-color: #667eea;
+    border-color: #e86826;
 }
 
 /* Table Container for Mobile Responsiveness */
@@ -997,7 +999,9 @@ body {
 }
 
 .btn-secondary:hover {
-    background-color: #545b62;
+    background-color: #5a6268;
+    color: white;
+    transform: translateY(-1px);
 }
 
 /* Table */
@@ -1056,9 +1060,9 @@ body {
 }
 
 .pagination .active {
-    background-color: #007bff;
+    background-color: #e86826;
     color: white;
-    border-color: #007bff;
+    border-color: #e86826;
 }
 
 /* Loading and Error States */
@@ -1095,7 +1099,7 @@ body {
 .stat-value {
     font-size: 24px;
     font-weight: bold;
-    color: #007bff;
+    color: #e86826;
 }
 
 .stat-label {
