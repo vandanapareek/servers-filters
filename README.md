@@ -51,6 +51,29 @@ This project provides a RESTful API backend built with Go and a modern Vue.js fr
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8081
 
+### Local Development (Without Docker)
+
+If you prefer to run the application locally without Docker:
+
+1. **Backend Setup**
+   ```bash
+   cd backend
+   go run main.go
+   ```
+
+2. **Frontend Setup**
+   ```bash
+   cd frontend
+   # Copy environment variables template
+   cp .env.example .env
+   npm install
+   npm run dev
+   ```
+
+3. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:8081
+
 ## Port Requirements & Troubleshooting
 
 ### Required Ports
@@ -79,7 +102,7 @@ services:
       - "3001:80"  # Use port 3001 instead
   backend:
     ports:
-      - "8082:8080"  # Use port 8082 instead
+      - "8081:8080"  # Use port 8081 instead
 ```
 
 ### Verification
@@ -102,6 +125,8 @@ go run main.go
 #### Frontend Setup
 ```bash
 cd frontend
+# Copy environment variables template
+cp .env.example .env
 npm install
 npm run dev
 ```
@@ -135,7 +160,7 @@ Interactive API documentation with Swagger UI:
 
 The application is deployed on AWS ECS with the following URLs:
 
-- **Frontend**: http://54.237.24.242/
+- **Frontend**: http://54.164.151.75/
 - **Backend API**: http://3.236.4.27:8080/servers
 
 ### Deployment Process
@@ -161,6 +186,29 @@ The application is deployed on AWS ECS with the following URLs:
 ### Environment Variables
 - Frontend: `VITE_API_BASE_URL` (backend API URL)
 - Backend: Database and port configuration
+
+### Local Development (Without Docker)
+
+When running the frontend and backend services independently:
+
+1. **Backend**: Runs on port `8080` by default
+2. **Frontend**: Runs on port `3000` with proxy configuration
+
+The frontend is configured to proxy API requests to the backend. If you need to override the backend URL, create a `.env.local` file in the frontend directory:
+
+```bash
+# frontend/.env.local
+VITE_API_BASE_URL=http://localhost:8080
+```
+
+**Backend Environment Variables** (optional):
+```bash
+# backend/.env
+SERVER_HOST=0.0.0.0
+SERVER_PORT=8080
+DB_DSN=data/servers.db
+LOG_LEVEL=info
+```
 
 
 ## Testing

@@ -38,7 +38,7 @@ func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
 			Host:         getEnv("SERVER_HOST", "0.0.0.0"),
-			Port:         getEnvAsInt("SERVER_PORT", 8080),
+			Port:         getEnvAsInt("SERVER_PORT", 8081),
 			ReadTimeout:  getEnvAsInt("SERVER_READ_TIMEOUT", 30),
 			WriteTimeout: getEnvAsInt("SERVER_WRITE_TIMEOUT", 30),
 		},
