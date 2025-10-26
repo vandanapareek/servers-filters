@@ -12,7 +12,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -25,51 +24,33 @@ import (
 )
 
 func main() {
-	// Test debug log
-	fmt.Println("🔥 MAIN DEBUG: Application starting...")
-
-	// Load configuration
+	// Load config
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("Failed to load configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Initialize logger
+	// Init logger
 	logger.Init(cfg.Log.Level, cfg.Log.Format)
 	log := logger.GetLogger()
 
 	log.Info("Starting servers listing application")
 
-	// Initialize database
+	// Init database
 	db, err := initDatabase(cfg.Database)
 	if err != nil {
 		log.WithError(err).Fatal("Failed to initialize database")
 	}
 	defer db.Close()
 
-	// Initialize repositories
+	// Init repos
 	serverRepo := repository.NewSQLiteRepository(db)
 
-	var cacheRepo repository.CacheRepository
-	if cfg.Cache.Enabled {
-		redisClient, err := initRedis(cfg.Cache)
-		if err != nil {
-			log.WithError(err).Warn("Failed to initialize Redis, continuing without cache")
-			cacheRepo = repository.NewNoOpCacheRepository()
-		} else {
-			cacheRepo = repository.NewRedisCacheRepository(redisClient)
-			log.Info("Redis cache initialized")
-		}
-	} else {
-		cacheRepo = repository.NewNoOpCacheRepository()
-		log.Info("Cache disabled")
-	}
+	// Init services
+	serverService := services.NewServerService(serverRepo)
 
-	// Initialize services
-	serverService := services.NewServerService(serverRepo, cacheRepo, cfg.Cache.TTL)
-
-	// Initialize handlers
+	// Init handlers
 	serverHandler := handlers.NewServerHandler(serverService)
 
 	// Setup router
@@ -83,7 +64,7 @@ func main() {
 		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
 	}
 
-	// Start server in a goroutine
+	// Start server in goroutine
 	go func() {
 		log.WithField("addr", server.Addr).Info("Server starting")
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -110,47 +91,22 @@ func main() {
 	log.Info("Server exited")
 }
 
-// initDatabase initializes the database connection
+// initialize the db connection
 func initDatabase(cfg config.DatabaseConfig) (*sqlx.DB, error) {
 	db, err := sqlx.Connect(cfg.Driver, cfg.DSN)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Test the connection
+	// test connection
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(25)
-	db.SetConnMaxLifetime(5 * time.Minute)
-
 	return db, nil
 }
 
-// initRedis initializes the Redis connection
-func initRedis(cfg config.CacheConfig) (*redis.Client, error) {
-	opt, err := redis.ParseURL(cfg.URL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse Redis URL: %w", err)
-	}
-
-	client := redis.NewClient(opt)
-
-	// Test the connection
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-
-	if err := client.Ping(ctx).Err(); err != nil {
-		return nil, fmt.Errorf("failed to ping Redis: %w", err)
-	}
-
-	return client, nil
-}
-
-// setupRouter sets up the HTTP router with middleware and routes
+// set the http router with middleware and routes
 func setupRouter(serverHandler *handlers.ServerHandler) *chi.Mux {
 	router := chi.NewRouter()
 

@@ -10,17 +10,17 @@ type ServerDTO struct {
 	Model          string    `json:"model"`
 	CPU            *string   `json:"cpu,omitempty"`
 	RAMGB          *int      `json:"ram_gb,omitempty"`
-	HDD            string    `json:"hdd"`
+	HDDGB          *int      `json:"hdd_gb,omitempty"`
 	HDDType        string    `json:"hdd_type,omitempty"`
-	StorageGB      *int      `json:"storage_gb,omitempty"`
 	StorageDisplay string    `json:"storage_display,omitempty"`
-	LocationCity   *string   `json:"location_city,omitempty"`
+	Location       *string   `json:"location,omitempty"`
 	LocationCode   *string   `json:"location_code,omitempty"`
-	PriceEUR       *float64  `json:"price_eur,omitempty"`
+	Price          *float64  `json:"price,omitempty"`
 	RawPrice       string    `json:"raw_price"`
-	RawRAM         string    `json:"raw_ram"`
 	RawHDD         string    `json:"raw_hdd"`
+	RawRAM         string    `json:"raw_ram"`
 	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // Request parameters for server list endpoint
@@ -38,7 +38,7 @@ type ServerListRequest struct {
 	PerPage    int      `json:"per_page" form:"per_page"`
 }
 
-// Pagination metadata for API responses
+// Pagination Object for API responses
 type PaginationDTO struct {
 	Page       int   `json:"page"`
 	PerPage    int   `json:"per_page"`
@@ -51,7 +51,6 @@ type ServerListResponse struct {
 	Data       []ServerDTO   `json:"data"`
 	Pagination PaginationDTO `json:"pagination"`
 }
-
 
 // Error response
 type ErrorResponse struct {

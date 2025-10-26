@@ -5,8 +5,8 @@
             <div class="stat-label">Total Servers</div>
         </div>
         <div class="stat-card">
-            <div class="stat-value">{{ metrics.ram_range || 'N/A' }}</div>
-            <div class="stat-label">RAM Range</div>
+            <div class="stat-value">€{{ metrics.min_price }} - €{{ metrics.max_price }}</div>
+            <div class="stat-label">Price Range</div>
         </div>
         <div class="stat-card">
             <div class="stat-value">{{ metrics.locations_count }}</div>
@@ -28,5 +28,5 @@ export default {
 </script>
 
 <style scoped>
-@import '../assets/app.css';
+/* Component-specific styles */
 </style>

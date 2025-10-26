@@ -80,6 +80,36 @@ def parse_cpu(model_str: str) -> Optional[str]:
     return None
 
 
+def parse_hdd_type(hdd_str: str) -> Optional[str]:
+    """Extract HDD type (SSD, SATA, SAS) from HDD string"""
+    if not hdd_str or pd.isna(hdd_str):
+        return None
+
+    hdd_str = str(hdd_str).upper()
+
+    # Check for SSD first (most specific)
+    if 'SSD' in hdd_str:
+        return 'SSD'
+    
+    # Check for SATA
+    if 'SATA' in hdd_str:
+        return 'SATA'
+    
+    # Check for SAS
+    if 'SAS' in hdd_str:
+        return 'SAS'
+    
+    # Default fallback - try to infer from common patterns
+    if any(keyword in hdd_str for keyword in ['SSD', 'SOLID']):
+        return 'SSD'
+    elif any(keyword in hdd_str for keyword in ['SATA', 'SERIAL']):
+        return 'SATA'
+    elif any(keyword in hdd_str for keyword in ['SAS', 'SCSI']):
+        return 'SAS'
+    
+    return None
+
+
 def parse_price(price_str: str) -> Tuple[Optional[float], str]:
     """Parse price string"""
     if not price_str or pd.isna(price_str):
@@ -134,28 +164,25 @@ def create_database_schema(conn: sqlite3.Connection) -> None:
             model TEXT NOT NULL,
             cpu TEXT,
             ram_gb INTEGER,
-            hdd TEXT,
-            storage_gb INTEGER,
-            location_city TEXT,
+            hdd_gb INTEGER,
+            hdd_type TEXT,
+            location TEXT,
             location_code TEXT,
-            price_eur REAL,
+            price REAL,
             raw_price TEXT,
-            raw_ram TEXT,
             raw_hdd TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            raw_ram TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-    # Create indexes
+    # Create indexes (optimized - removed unused indexes)
     indexes = [
-        "CREATE INDEX idx_servers_model ON servers(model)",
-        "CREATE INDEX idx_servers_cpu ON servers(cpu)",
         "CREATE INDEX idx_servers_ram_gb ON servers(ram_gb)",
-        "CREATE INDEX idx_servers_storage_gb ON servers(storage_gb)",
-        "CREATE INDEX idx_servers_location_city ON servers(location_city)",
-        "CREATE INDEX idx_servers_location_code ON servers(location_code)",
-        "CREATE INDEX idx_servers_price_eur ON servers(price_eur)",
-        "CREATE INDEX idx_servers_hdd ON servers(hdd)",
+        "CREATE INDEX idx_servers_hdd_gb ON servers(hdd_gb)",
+        "CREATE INDEX idx_servers_location ON servers(location)",
+        "CREATE INDEX idx_servers_hdd_type ON servers(hdd_type)",
     ]
 
     for index_sql in indexes:
@@ -178,6 +205,9 @@ def process_excel_data(df: pd.DataFrame) -> List[Dict[str, Any]]:
         # Parse CPU from model
         cpu = parse_cpu(row.get('Model', ''))
 
+        # Parse HDD type
+        hdd_type = parse_hdd_type(row.get('HDD', ''))
+
         # Parse price
         price_eur, raw_price = parse_price(row.get('Price', ''))
 
@@ -188,14 +218,14 @@ def process_excel_data(df: pd.DataFrame) -> List[Dict[str, Any]]:
             'model': str(row.get('Model', '')),
             'cpu': cpu,
             'ram_gb': ram_gb,
-            'hdd': str(row.get('HDD', '')),
-            'storage_gb': storage_gb,
-            'location_city': location_city,
+            'hdd_gb': storage_gb,
+            'hdd_type': hdd_type,
+            'location': location_city,
             'location_code': location_code,
-            'price_eur': price_eur,
+            'price': price_eur,
             'raw_price': raw_price,
-            'raw_ram': str(row.get('RAM', '')),
             'raw_hdd': raw_hdd,
+            'raw_ram': str(row.get('RAM', '')),
         }
 
         processed_data.append(processed_row)
@@ -210,17 +240,17 @@ def insert_data_batch(conn: sqlite3.Connection, data: List[Dict[str, Any]]) -> N
     # Prepare insert statement
     insert_sql = """
         INSERT INTO servers (
-            model, cpu, ram_gb, hdd, storage_gb, location_city, 
-            location_code, price_eur, raw_price, raw_ram, raw_hdd
+            model, cpu, ram_gb, hdd_gb, hdd_type, location, 
+            location_code, price, raw_price, raw_hdd, raw_ram
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """
 
     # Convert data to tuples for batch insert
     data_tuples = [
         (
-            row['model'], row['cpu'], row['ram_gb'], row['hdd'],
-            row['storage_gb'], row['location_city'], row['location_code'],
-            row['price_eur'], row['raw_price'], row['raw_ram'], row['raw_hdd']
+            row['model'], row['cpu'], row['ram_gb'], row['hdd_gb'], row['hdd_type'],
+            row['location'], row['location_code'], row['price'], 
+            row['raw_price'], row['raw_hdd'], row['raw_ram']
         )
         for row in data
     ]

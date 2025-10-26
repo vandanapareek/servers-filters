@@ -10,7 +10,6 @@ import (
 type Config struct {
 	Server   ServerConfig   `json:"server"`
 	Database DatabaseConfig `json:"database"`
-	Cache    CacheConfig    `json:"cache"`
 	Log      LogConfig      `json:"log"`
 }
 
@@ -28,21 +27,13 @@ type DatabaseConfig struct {
 	DSN    string `json:"dsn"`
 }
 
-// Cache configuration
-type CacheConfig struct {
-	Enabled bool   `json:"enabled"`
-	Type    string `json:"type"`
-	URL     string `json:"url"`
-	TTL     int    `json:"ttl"`
-}
-
 // Log configuration
 type LogConfig struct {
 	Level  string `json:"level"`
 	Format string `json:"format"`
 }
 
-// load configuration from environment variables
+// load config from environment variables
 func Load() (*Config, error) {
 	config := &Config{
 		Server: ServerConfig{
@@ -55,12 +46,6 @@ func Load() (*Config, error) {
 			Driver: getEnv("DB_DRIVER", "sqlite3"),
 			DSN:    getEnv("DB_DSN", "data/servers.db"),
 		},
-		Cache: CacheConfig{
-			Enabled: getEnvAsBool("CACHE_ENABLED", false),
-			Type:    getEnv("CACHE_TYPE", "redis"),
-			URL:     getEnv("CACHE_URL", "redis://localhost:6379"),
-			TTL:     getEnvAsInt("CACHE_TTL", 300), // 5 minutes
-		},
 		Log: LogConfig{
 			Level:  getEnv("LOG_LEVEL", "info"),
 			Format: getEnv("LOG_FORMAT", "json"),
@@ -70,12 +55,12 @@ func Load() (*Config, error) {
 	return config, nil
 }
 
-// To get server address
+// get server address
 func (c *Config) GetServerAddr() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 }
 
-// To get environment variable with a default value
+// get environment var with default value
 func getEnv(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
@@ -83,21 +68,11 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// To get environment variable as integer with a default value
+// get environment var as integer with a default value
 func getEnvAsInt(key string, defaultValue int) int {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return intValue
-		}
-	}
-	return defaultValue
-}
-
-// To get environment variable as boolean with a default value
-func getEnvAsBool(key string, defaultValue bool) bool {
-	if value := os.Getenv(key); value != "" {
-		if boolValue, err := strconv.ParseBool(value); err == nil {
-			return boolValue
 		}
 	}
 	return defaultValue

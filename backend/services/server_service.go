@@ -2,10 +2,7 @@ package services
 
 import (
 	"context"
-	"crypto/md5"
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"servers-filters/dto"
 	"servers-filters/internal/constants"
@@ -13,25 +10,20 @@ import (
 	"servers-filters/repository"
 )
 
-// ServerServiceImpl implements ServerService
+// Implement ServerService
 type ServerServiceImpl struct {
 	serverRepo repository.ServerRepository
-	cacheRepo  repository.CacheRepository
-	cacheTTL   int
 }
 
-// Create a new server service
-func NewServerService(serverRepo repository.ServerRepository, cacheRepo repository.CacheRepository, cacheTTL int) ServerService {
+// Create new server service
+func NewServerService(serverRepo repository.ServerRepository) ServerService {
 	return &ServerServiceImpl{
 		serverRepo: serverRepo,
-		cacheRepo:  cacheRepo,
-		cacheTTL:   cacheTTL,
 	}
 }
 
 // Get servers with filters and pagination
 func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRequest) (*dto.ServerListResponse, error) {
-	// Normalize request parameters
 	if req.Page <= 0 {
 		req.Page = constants.DefaultPage
 	}
@@ -42,44 +34,25 @@ func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRe
 		req.PerPage = constants.MaxPerPage
 	}
 
-	// Convert request to model filters
+	// convert request to model filters
 	filters := s.convertRequestToFilters(req)
 
-	// Generate cache key
-	cacheKey := s.generateCacheKey("servers", filters)
-
-	// Try to get from cache first
-	var response *dto.ServerListResponse
-	if s.cacheRepo != nil {
-		cached, err := s.cacheRepo.Get(ctx, cacheKey)
-		if err == nil && cached != "" {
-			err = json.Unmarshal([]byte(cached), &response)
-			if err == nil {
-				return response, nil
-			}
-		}
-	}
-
-	// Get from database (pagination is already applied at database level)
+	// get from database
 	servers, total, err := s.serverRepo.GetServers(ctx, filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get servers: %w", err)
 	}
 
-	// Debug logging
-	fmt.Printf("DEBUG: Page=%d, PerPage=%d, Servers returned=%d, Total=%d\n",
-		req.Page, req.PerPage, len(servers), total)
-
-	// Convert to DTOs
+	// convert to DTOs
 	serverDTOs := make([]dto.ServerDTO, len(servers))
 	for i, server := range servers {
 		serverDTOs[i] = s.convertModelToDTO(server)
 	}
 
-	// Calculate pagination
+	// calculate pagination
 	totalPages := int((total + int64(req.PerPage) - 1) / int64(req.PerPage))
 
-	response = &dto.ServerListResponse{
+	response := &dto.ServerListResponse{
 		Data: serverDTOs,
 		Pagination: dto.PaginationDTO{
 			Page:       req.Page,
@@ -89,46 +62,15 @@ func (s *ServerServiceImpl) GetServers(ctx context.Context, req dto.ServerListRe
 		},
 	}
 
-	// Cache the response
-	if s.cacheRepo != nil {
-		cached, err := json.Marshal(response)
-		if err == nil {
-			s.cacheRepo.Set(ctx, cacheKey, string(cached), s.cacheTTL)
-		}
-	}
-
 	return response, nil
 }
 
 // Get all unique locations
 func (s *ServerServiceImpl) GetLocations(ctx context.Context) ([]string, error) {
-	// Generate cache key
-	cacheKey := "locations"
-
-	// Try to get from cache first
-	if s.cacheRepo != nil {
-		cached, err := s.cacheRepo.Get(ctx, cacheKey)
-		if err == nil && cached != "" {
-			var locations []string
-			err = json.Unmarshal([]byte(cached), &locations)
-			if err == nil {
-				return locations, nil
-			}
-		}
-	}
-
 	// Get from database
 	locations, err := s.serverRepo.GetLocations(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get locations: %w", err)
-	}
-
-	// Cache the response
-	if s.cacheRepo != nil {
-		cached, err := json.Marshal(locations)
-		if err == nil {
-			s.cacheRepo.Set(ctx, cacheKey, string(cached), s.cacheTTL)
-		}
 	}
 
 	return locations, nil
@@ -136,29 +78,14 @@ func (s *ServerServiceImpl) GetLocations(ctx context.Context) ([]string, error) 
 
 // Get metrics about the servers
 func (s *ServerServiceImpl) GetMetrics(ctx context.Context) (*dto.MetricsResponse, error) {
-	// Generate cache key
-	cacheKey := constants.MetricsCacheKey
-
-	// Try to get from cache first
-	var response *dto.MetricsResponse
-	if s.cacheRepo != nil {
-		cached, err := s.cacheRepo.Get(ctx, cacheKey)
-		if err == nil && cached != "" {
-			err = json.Unmarshal([]byte(cached), &response)
-			if err == nil {
-				return response, nil
-			}
-		}
-	}
-
-	// Get from database
+	// get from database
 	metrics, err := s.serverRepo.GetMetrics(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
 
-	// Convert to DTO
-	response = &dto.MetricsResponse{
+	// convert to DTO
+	response := &dto.MetricsResponse{
 		TotalServers:   metrics.TotalServers,
 		MinPrice:       metrics.MinPrice,
 		MaxPrice:       metrics.MaxPrice,
@@ -166,34 +93,22 @@ func (s *ServerServiceImpl) GetMetrics(ctx context.Context) (*dto.MetricsRespons
 		LastUpdated:    metrics.LastUpdated,
 	}
 
-	// Cache the response
-	if s.cacheRepo != nil {
-		cached, err := json.Marshal(response)
-		if err == nil {
-			s.cacheRepo.Set(ctx, cacheKey, string(cached), s.cacheTTL)
-		}
-	}
-
 	return response, nil
 }
 
-// Convert a DTO request to model filters
+// Convert DTO request to model filters
 func (s *ServerServiceImpl) convertRequestToFilters(req dto.ServerListRequest) models.ServerFilters {
-	// Convert TB values to GB for database filtering
+	// Convert TB to GB for database filtering
 	var storageMinGB, storageMaxGB *int
 
 	if req.StorageMin != nil {
-		// Convert TB to GB: multiply by 1024
 		gb := int(*req.StorageMin * constants.TBToGBMultiplier)
 		storageMinGB = &gb
-		fmt.Printf("🔥 TB CONVERSION: %.2f TB -> %d GB\n", *req.StorageMin, gb)
 	}
 
 	if req.StorageMax != nil {
-		// Convert TB to GB: multiply by 1024
 		gb := int(*req.StorageMax * constants.TBToGBMultiplier)
 		storageMaxGB = &gb
-		fmt.Printf("🔥 TB CONVERSION: %.2f TB -> %d GB\n", *req.StorageMax, gb)
 	}
 
 	return models.ServerFilters{
@@ -211,106 +126,52 @@ func (s *ServerServiceImpl) convertRequestToFilters(req dto.ServerListRequest) m
 	}
 }
 
-// Converts a model to DTO
+// Convert model to DTO
 func (s *ServerServiceImpl) convertModelToDTO(server models.Server) dto.ServerDTO {
-	storageDisplay := s.formatStorageDisplay(server.StorageGB)
-	hddType := s.extractHDDType(server.HDD)
+	storageDisplay := s.formatStorageDisplay(server.HDDGB)
+
+	var hddType string
+	if server.HDDType != nil {
+		hddType = *server.HDDType
+	}
 
 	return dto.ServerDTO{
 		ID:             server.ID,
 		Model:          server.Model,
 		CPU:            server.CPU,
 		RAMGB:          server.RAMGB,
-		HDD:            server.HDD,
+		HDDGB:          server.HDDGB,
 		HDDType:        hddType,
-		StorageGB:      server.StorageGB,
 		StorageDisplay: storageDisplay,
-		LocationCity:   server.LocationCity,
+		Location:       server.Location,
 		LocationCode:   server.LocationCode,
-		PriceEUR:       server.PriceEUR,
+		Price:          server.Price,
 		RawPrice:       server.RawPrice,
-		RawRAM:         server.RawRAM,
 		RawHDD:         server.RawHDD,
+		RawRAM:         server.RawRAM,
 		CreatedAt:      server.CreatedAt,
+		UpdatedAt:      server.UpdatedAt,
 	}
 }
 
-// formatStorageDisplay formats storage in GB to TB when appropriate
+// format storage in GB to TB
 func (s *ServerServiceImpl) formatStorageDisplay(storageGB *int) string {
 	if storageGB == nil {
 		return ""
 	}
 
 	gb := *storageGB
-	if gb >= 1024 {
-		// Convert to TB
-		tb := float64(gb) / 1024.0
+	if gb >= 1000 {
+		// convert to TB
+		tb := float64(gb) / 1000.0
 		if tb == float64(int(tb)) {
-			// If it's a whole number, don't show decimal
+			// if it's a whole number, don't show decimal
 			return fmt.Sprintf("%.0fTB", tb)
 		} else {
-			// Show one decimal place
+			// show one decimal place
 			return fmt.Sprintf("%.1fTB", tb)
 		}
 	}
 
 	return fmt.Sprintf("%dGB", gb)
-}
-
-// extractHDDType extracts the disk type from HDD string
-func (s *ServerServiceImpl) extractHDDType(hdd string) string {
-	if hdd == "" {
-		return ""
-	}
-
-	// Extract disk type from HDD string (e.g., "4x480GBSSD" -> "SSD")
-	// Look for common disk types at the end of the string
-	diskTypes := []string{"SSD", "SATA2", "SATA3", "NVMe", "HDD"}
-	for _, diskType := range diskTypes {
-		if strings.HasSuffix(strings.ToUpper(hdd), diskType) {
-			return diskType
-		}
-	}
-
-	// If no specific type found, try to extract the last word after numbers and GB/TB
-	// Remove numbers and GB/TB units, then get the last part
-	cleaned := strings.ToUpper(hdd)
-	// Remove common patterns like "2x500GB" or "4x480GB"
-	cleaned = strings.ReplaceAll(cleaned, "GB", "")
-	cleaned = strings.ReplaceAll(cleaned, "TB", "")
-
-	// Split by numbers and get the last non-empty part
-	parts := strings.FieldsFunc(cleaned, func(c rune) bool {
-		return c >= '0' && c <= '9'
-	})
-	if len(parts) > 0 {
-		lastPart := strings.TrimSpace(parts[len(parts)-1])
-		if lastPart != "" {
-			return lastPart
-		}
-	}
-
-	return hdd
-}
-
-// Generate a cache key for the given filters
-func (s *ServerServiceImpl) generateCacheKey(prefix string, filters models.ServerFilters) string {
-	// Create a hash of the filters for the cache key
-	filterData := map[string]interface{}{
-		"query":       filters.Query,
-		"location":    filters.Location,
-		"ram_min":     filters.RAMMin,
-		"ram_max":     filters.RAMMax,
-		"storage_min": filters.StorageMin,
-		"storage_max": filters.StorageMax,
-		"hdd":         filters.HDD,
-		"sort":        filters.Sort,
-		"page":        filters.Page,
-		"per_page":    filters.PerPage,
-	}
-
-	data, _ := json.Marshal(filterData)
-	hash := md5.Sum(data)
-
-	return fmt.Sprintf("%s:%x", prefix, hash)
 }

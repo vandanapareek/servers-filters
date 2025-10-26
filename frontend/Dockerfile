@@ -1,31 +1,22 @@
-# Simplified Vue.js frontend
 FROM --platform=linux/amd64 node:20-alpine
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files
 COPY package*.json ./
 
 # Install dependencies
 RUN npm install
 
-# Copy source code
 COPY . .
 
-# Build the application
 RUN npm run build
 
-# Install nginx
 RUN apk add --no-cache nginx
 
-# Create nginx directories
 RUN mkdir -p /usr/share/nginx/html
 
-# Copy nginx config
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Copy built files
 RUN cp -r dist/* /usr/share/nginx/html/
 
 # Expose port

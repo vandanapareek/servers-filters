@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,19 +13,19 @@ import (
 	"github.com/go-chi/render"
 )
 
-// ServerHandler handles server-related HTTP requests
+// Handle server-related HTTP requests
 type ServerHandler struct {
 	serverService services.ServerService
 }
 
-// Creates a new server handler
+// Create a new server handler
 func NewServerHandler(serverService services.ServerService) *ServerHandler {
 	return &ServerHandler{
 		serverService: serverService,
 	}
 }
 
-// GetServers handles GET /servers
+// GET /servers endpoint
 func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	// Parse query parameters
 	req := dto.ServerListRequest{
@@ -42,11 +41,6 @@ func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 		Page:       parseIntParamWithDefault(r.URL.Query().Get("page"), constants.DefaultPage),
 		PerPage:    parseIntParamWithDefault(r.URL.Query().Get("per_page"), constants.DefaultPerPage),
 	}
-
-	// Debug: Check what we receive from API
-	fmt.Println("🔥 API DEBUG: Starting handler")
-	fmt.Printf("🔥 API DEBUG: storage_max raw='%s'\n", r.URL.Query().Get("storage_max"))
-	fmt.Printf("🔥 API DEBUG: storage_max parsed=%v\n", req.StorageMax)
 
 	// Get servers
 	response, err := h.serverService.GetServers(r.Context(), req)
@@ -64,9 +58,9 @@ func (h *ServerHandler) GetServers(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-// GetLocations handles GET /locations
+// GET /locations endpoint
 func (h *ServerHandler) GetLocations(w http.ResponseWriter, r *http.Request) {
-	// Get locations
+	// get locations
 	locations, err := h.serverService.GetLocations(r.Context())
 	if err != nil {
 		logger.GetLogger().WithError(err).Error(constants.ErrorFailedToGetLocations)
@@ -84,7 +78,7 @@ func (h *ServerHandler) GetLocations(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GetMetrics handles GET /metrics
+// GET /metrics endpoint
 func (h *ServerHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	// Get metrics
 	response, err := h.serverService.GetMetrics(r.Context())
@@ -102,7 +96,7 @@ func (h *ServerHandler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-// parseLocationParam parses comma-separated location values
+// parse comma-separated location values
 func parseLocationParam(locationStr string) []string {
 	if locationStr == "" {
 		return nil
@@ -120,7 +114,7 @@ func parseLocationParam(locationStr string) []string {
 	return result
 }
 
-// parseIntParam parses an integer parameter
+// parse integer parameter
 func parseIntParam(param string) *int {
 	if param == "" {
 		return nil
@@ -134,7 +128,7 @@ func parseIntParam(param string) *int {
 	return &val
 }
 
-// parseIntParamWithDefault parses an integer parameter with a default value
+// parse integer parameter with a default value
 func parseIntParamWithDefault(param string, defaultValue int) int {
 	if param == "" {
 		return defaultValue
@@ -148,7 +142,7 @@ func parseIntParamWithDefault(param string, defaultValue int) int {
 	return val
 }
 
-// parseFloatParam parses a float parameter
+// parse float parameter
 func parseFloatParam(param string) *float64 {
 	if param == "" {
 		return nil
@@ -162,7 +156,7 @@ func parseFloatParam(param string) *float64 {
 	return &val
 }
 
-// Parses a comma-separated integer array parameter
+// parse comma separated int array param
 func parseIntArrayParam(param string) []int {
 	if param == "" {
 		return nil

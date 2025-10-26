@@ -32,7 +32,7 @@ func Init(level, format string) {
 	Logger.SetOutput(os.Stdout)
 }
 
-// GetLogger returns the global logger instance
+// return the global logger instance
 func GetLogger() *logrus.Logger {
 	if Logger == nil {
 		Init("info", "json")

@@ -9,7 +9,7 @@ import (
 	"servers-filters/models"
 )
 
-// MockServerRepository implements ServerRepository for testing
+// implement ServerRepository for testing
 type MockServerRepository struct {
 	servers   []models.Server
 	locations []string
@@ -17,7 +17,7 @@ type MockServerRepository struct {
 }
 
 func (m *MockServerRepository) GetServers(ctx context.Context, filters models.ServerFilters) ([]models.Server, int64, error) {
-	// Apply basic filtering for testing
+	// Apply basic filtering
 	filteredServers := make([]models.Server, 0)
 
 	for _, server := range m.servers {
@@ -29,7 +29,7 @@ func (m *MockServerRepository) GetServers(ctx context.Context, filters models.Se
 			continue
 		}
 
-		// Apply RAM values filter (exact match)
+		// Apply RAM values filter
 		if len(filters.RAMValues) > 0 && server.RAMGB != nil {
 			found := false
 			for _, ramValue := range filters.RAMValues {
@@ -43,11 +43,11 @@ func (m *MockServerRepository) GetServers(ctx context.Context, filters models.Se
 			}
 		}
 
-		// Apply storage filter (TB to GB conversion)
-		if filters.StorageMin != nil && server.StorageGB != nil && *server.StorageGB < *filters.StorageMin {
+		// Apply storage filter
+		if filters.StorageMin != nil && server.HDDGB != nil && *server.HDDGB < *filters.StorageMin {
 			continue
 		}
-		if filters.StorageMax != nil && server.StorageGB != nil && *server.StorageGB > *filters.StorageMax {
+		if filters.StorageMax != nil && server.HDDGB != nil && *server.HDDGB > *filters.StorageMax {
 			continue
 		}
 
@@ -70,13 +70,10 @@ func (m *MockServerRepository) GetServers(ctx context.Context, filters models.Se
 	return filteredServers[start:end], total, nil
 }
 
-
 func (m *MockServerRepository) GetServerCount(ctx context.Context, filters models.ServerFilters) (int64, error) {
-	// Apply same filtering logic as GetServers
 	filteredServers := make([]models.Server, 0)
 
 	for _, server := range m.servers {
-		// Apply RAM filter
 		if filters.RAMMin != nil && server.RAMGB != nil && *server.RAMGB < *filters.RAMMin {
 			continue
 		}
@@ -84,7 +81,6 @@ func (m *MockServerRepository) GetServerCount(ctx context.Context, filters model
 			continue
 		}
 
-		// Apply RAM values filter (exact match)
 		if len(filters.RAMValues) > 0 && server.RAMGB != nil {
 			found := false
 			for _, ramValue := range filters.RAMValues {
@@ -112,25 +108,6 @@ func (m *MockServerRepository) GetMetrics(ctx context.Context) (*models.ServerMe
 	return m.metrics, nil
 }
 
-// MockCacheRepository implements CacheRepository for testing
-type MockCacheRepository struct{}
-
-func (m *MockCacheRepository) Get(ctx context.Context, key string) (string, error) {
-	return "", nil
-}
-
-func (m *MockCacheRepository) Set(ctx context.Context, key string, value string, ttl int) error {
-	return nil
-}
-
-func (m *MockCacheRepository) Delete(ctx context.Context, key string) error {
-	return nil
-}
-
-func (m *MockCacheRepository) Clear(ctx context.Context) error {
-	return nil
-}
-
 func TestServerService_GetServers(t *testing.T) {
 	// Setup mock data
 	mockServers := []models.Server{
@@ -139,41 +116,42 @@ func TestServerService_GetServers(t *testing.T) {
 			Model:        "Dell R740",
 			CPU:          stringPtr("Intel Xeon"),
 			RAMGB:        intPtr(32),
-			HDD:          "2x2TB SATA2",
-			StorageGB:    intPtr(4096),
-			LocationCity: stringPtr("Amsterdam"),
+			HDDGB:        intPtr(4000),
+			HDDType:      stringPtr("SATA2"),
+			Location:     stringPtr("Amsterdam"),
 			LocationCode: stringPtr("AMS-01"),
-			PriceEUR:     float64Ptr(89.0),
+			Price:        float64Ptr(89.0),
 			RawPrice:     "€89.00",
 			RawRAM:       "32GB DDR4",
 			RawHDD:       "2x2TB SATA2",
 			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		},
 		{
 			ID:           2,
 			Model:        "HP DL380",
 			CPU:          stringPtr("AMD Ryzen"),
 			RAMGB:        intPtr(16),
-			HDD:          "1x500GB SSD",
-			StorageGB:    intPtr(500),
-			LocationCity: stringPtr("New York"),
+			HDDGB:        intPtr(500),
+			HDDType:      stringPtr("SSD"),
+			Location:     stringPtr("New York"),
 			LocationCode: stringPtr("NY-01"),
-			PriceEUR:     float64Ptr(75.5),
+			Price:        float64Ptr(75.5),
 			RawPrice:     "€75.50",
 			RawRAM:       "16GB DDR3",
 			RawHDD:       "1x500GB SSD",
 			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		},
 	}
 
 	mockRepo := &MockServerRepository{
 		servers: mockServers,
 	}
-	mockCache := &MockCacheRepository{}
 
-	service := NewServerService(mockRepo, mockCache, 300)
+	service := NewServerService(mockRepo)
 
-	// Test cases
+	// test cases
 	tests := []struct {
 		name     string
 		request  dto.ServerListRequest
@@ -212,7 +190,7 @@ func TestServerService_GetServers(t *testing.T) {
 				Page:       1,
 				PerPage:    20,
 			},
-			expected: 1, // Only the 4TB server should match
+			expected: 1,
 		},
 	}
 
@@ -234,16 +212,14 @@ func TestServerService_GetServers(t *testing.T) {
 	}
 }
 
-
 func TestServerService_GetLocations(t *testing.T) {
 	mockLocations := []string{"Amsterdam", "New York", "London"}
 
 	mockRepo := &MockServerRepository{
 		locations: mockLocations,
 	}
-	mockCache := &MockCacheRepository{}
 
-	service := NewServerService(mockRepo, mockCache, 300)
+	service := NewServerService(mockRepo)
 
 	locations, err := service.GetLocations(context.Background())
 	if err != nil {
@@ -267,9 +243,8 @@ func TestServerService_GetMetrics(t *testing.T) {
 	mockRepo := &MockServerRepository{
 		metrics: mockMetrics,
 	}
-	mockCache := &MockCacheRepository{}
 
-	service := NewServerService(mockRepo, mockCache, 300)
+	service := NewServerService(mockRepo)
 
 	metrics, err := service.GetMetrics(context.Background())
 	if err != nil {
@@ -289,66 +264,6 @@ func TestServerService_GetMetrics(t *testing.T) {
 	}
 }
 
-func TestServerService_ExtractHDDType(t *testing.T) {
-	service := &ServerServiceImpl{}
-
-	tests := []struct {
-		name     string
-		hdd      string
-		expected string
-	}{
-		{
-			name:     "SSD extraction",
-			hdd:      "4x480GBSSD",
-			expected: "SSD",
-		},
-		{
-			name:     "SATA2 extraction",
-			hdd:      "2x2TBSATA2",
-			expected: "SATA2",
-		},
-		{
-			name:     "SATA3 extraction",
-			hdd:      "1x1TBSATA3",
-			expected: "SATA3",
-		},
-		{
-			name:     "NVMe extraction",
-			hdd:      "2x500GBNVMe",
-			expected: "NVME",
-		},
-		{
-			name:     "HDD extraction",
-			hdd:      "1x1TBHDD",
-			expected: "HDD",
-		},
-		{
-			name:     "Case insensitive",
-			hdd:      "4x480GBssd",
-			expected: "SSD",
-		},
-		{
-			name:     "Empty string",
-			hdd:      "",
-			expected: "",
-		},
-		{
-			name:     "Unknown type",
-			hdd:      "2x500GBUnknown",
-			expected: "UNKNOWN",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := service.extractHDDType(tt.hdd)
-			if result != tt.expected {
-				t.Errorf("extractHDDType(%s) = %s, want %s", tt.hdd, result, tt.expected)
-			}
-		})
-	}
-}
-
 func TestServerService_FormatStorageDisplay(t *testing.T) {
 	service := &ServerServiceImpl{}
 
@@ -364,7 +279,7 @@ func TestServerService_FormatStorageDisplay(t *testing.T) {
 		},
 		{
 			name:     "TB storage whole number",
-			storage:  intPtr(4096),
+			storage:  intPtr(4000),
 			expected: "4TB",
 		},
 		{
@@ -379,7 +294,7 @@ func TestServerService_FormatStorageDisplay(t *testing.T) {
 		},
 		{
 			name:     "Exact 1TB",
-			storage:  intPtr(1024),
+			storage:  intPtr(1000),
 			expected: "1TB",
 		},
 	}
@@ -402,15 +317,16 @@ func TestServerService_ConvertModelToDTO(t *testing.T) {
 		Model:        "Dell R740",
 		CPU:          stringPtr("Intel Xeon"),
 		RAMGB:        intPtr(32),
-		HDD:          "2x2TBSATA2",
-		StorageGB:    intPtr(4096),
-		LocationCity: stringPtr("Amsterdam"),
+		HDDGB:        intPtr(4000),
+		HDDType:      stringPtr("SATA2"),
+		Location:     stringPtr("Amsterdam"),
 		LocationCode: stringPtr("AMS-01"),
-		PriceEUR:     float64Ptr(89.0),
+		Price:        float64Ptr(89.0),
 		RawPrice:     "€89.00",
 		RawRAM:       "32GB DDR4",
 		RawHDD:       "2x2TB SATA2",
 		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
 
 	dto := service.convertModelToDTO(server)
@@ -424,7 +340,7 @@ func TestServerService_ConvertModelToDTO(t *testing.T) {
 		t.Errorf("convertModelToDTO() Model = %s, want %s", dto.Model, server.Model)
 	}
 
-	// Test HDD type extraction
+	// Test HDD type from database
 	if dto.HDDType != "SATA2" {
 		t.Errorf("convertModelToDTO() HDDType = %s, want SATA2", dto.HDDType)
 	}

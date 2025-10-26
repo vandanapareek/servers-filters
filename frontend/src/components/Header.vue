@@ -15,5 +15,5 @@ export default {
 </script>
 
 <style scoped>
-@import '../assets/app.css';
+/* Component-specific styles */
 </style>

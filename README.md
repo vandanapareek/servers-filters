@@ -19,7 +19,6 @@ This project provides a RESTful API backend built with Go and a modern Vue.js fr
 ### Backend
 - **Go** with Chi router
 - **SQLite** database
-- **Redis** caching (optional)
 - **Docker** containerization
 
 ### Frontend
@@ -51,7 +50,45 @@ This project provides a RESTful API backend built with Go and a modern Vue.js fr
 3. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:8081
-   - Redis: localhost:6380
+
+## Port Requirements & Troubleshooting
+
+### Required Ports
+This application requires the following ports to be available:
+- **Port 3000**: Frontend (Vue.js app)
+- **Port 8081**: Backend API
+
+### Port Conflicts
+If you encounter port conflicts, you have several options:
+
+#### Option 1: Stop conflicting services
+```bash
+# Check what's using the ports
+lsof -i :3000
+lsof -i :8081
+
+# Stop the conflicting processes
+kill -9 <PID>
+```
+
+#### Option 2: Change ports in docker-compose.yml
+```yaml
+services:
+  frontend:
+    ports:
+      - "3001:80"  # Use port 3001 instead
+  backend:
+    ports:
+      - "8082:8080"  # Use port 8082 instead
+```
+
+### Verification
+After starting, verify all services are running:
+```bash
+docker-compose ps
+curl http://localhost:3000  # Frontend
+curl http://localhost:8081/servers  # Backend
+```
 
 ### Manual Development Setup
 
@@ -74,7 +111,7 @@ npm run dev
 ### Postman Collection
 Import the provided Postman collection to test all API endpoints:
 
-**File**: `ServersFilters.postman_collection.json`
+**File**: [`docs/ServersFilters.postman_collection.json`](./docs/ServersFilters.postman_collection.json)
 
 **Setup**:
 1. Open Postman
@@ -82,7 +119,17 @@ Import the provided Postman collection to test all API endpoints:
 3. Set base URL to your backend URL
 4. Test all endpoints with examples
 
-For detailed API documentation, see [API-DOCUMENTATION.md](API-DOCUMENTATION.md)
+### Swagger/OpenAPI Documentation
+Interactive API documentation with Swagger UI:
+
+**File**: [`docs/swagger.yaml`](./docs/swagger.yaml)
+
+**Setup**:
+1. Go to [Swagger Editor](https://editor.swagger.io/)
+2. Copy the content from [`docs/swagger.yaml`](./docs/swagger.yaml) file
+3. Paste it into the Swagger Editor
+4. Test all endpoints interactively with full documentation
+
 
 ## AWS Deployment
 

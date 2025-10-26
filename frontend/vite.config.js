@@ -2,7 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 
 export default defineConfig(({ mode }) => {
-    // Load environment variables
+    // Load environment var
     const env = loadEnv(mode, process.cwd(), '')
 
     return {

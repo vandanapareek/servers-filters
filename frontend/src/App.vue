@@ -19,7 +19,7 @@
                 </div>
             </div>
 
-        <!-- Custom Storage Slider -->
+        <!-- Storage Slider -->
         <div class="filter-row">
             <div class="filter-group storage-slider">
                 <label class="slider-label">
@@ -48,7 +48,7 @@
             </div>
         </div>
 
-            <!-- RAM Checkboxes -->
+            <!-- RAM filters-->
             <div class="filter-row">
                 <div class="filter-group ram-checkboxes">
                     <label class="ram-label">RAM Memory</label>
@@ -88,21 +88,21 @@
                 </div>
             </div>
 
-            <!-- Sort and Per Page -->
+            <!-- Sort dropdown -->
             <div class="filter-row">
                 <div class="filter-group">
                     <label for="sort">Sort By</label>
                     <select id="sort" v-model="filters.sort" @change="applyFilters">
                         <option value="id.asc">ID (Ascending)</option>
                         <option value="id.desc">ID (Descending)</option>
-                        <option value="price_eur.asc">Price (Low to High)</option>
-                        <option value="price_eur.desc">Price (High to Low)</option>
+                        <option value="price.asc">Price (Low to High)</option>
+                        <option value="price.desc">Price (High to Low)</option>
                         <option value="ram_gb.asc">RAM (Low to High)</option>
                         <option value="ram_gb.desc">RAM (High to Low)</option>
-                        <option value="storage_gb.asc">Storage (Low to High)</option>
-                        <option value="storage_gb.desc">Storage (High to Low)</option>
-                        <option value="location_city.asc">Location (A-Z)</option>
-                        <option value="location_city.desc">Location (Z-A)</option>
+                        <option value="hdd_gb.asc">Storage (Low to High)</option>
+                        <option value="hdd_gb.desc">Storage (High to Low)</option>
+                        <option value="location.asc">Location (A-Z)</option>
+                        <option value="location.desc">Location (Z-A)</option>
                     </select>
                 </div>
 
@@ -122,7 +122,7 @@
             </div>
         </div>
 
-        <!-- Error Message -->
+        <!-- error message -->
         <div v-if="error" class="error">
             {{ error }}
         </div>
@@ -152,22 +152,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="server in servers" :key="server.id">
-                        <td>{{ server.id }}</td>
+                    <tr v-for="(server, index) in servers" :key="server.id">
+                        <td>{{ (pagination.page - 1) * pagination.per_page + index + 1 }}</td>
                         <td>{{ server.model }}</td>
                         <td>{{ server.cpu || '-' }}</td>
                         <td>{{ server.ram_gb ? `${server.ram_gb}GB` : '-' }}</td>
                         <td>
-                            <div class="storage-capacity">{{ server.storage_display || formatStorageFromGB(server.storage_gb) }}</div>
+                            <div class="storage-capacity">{{ server.storage_display || '-' }}</div>
                         </td>
                         <td>
                             <div class="hdd-type">{{ server.hdd_type || '-' }}</div>
                         </td>
                         <td>
-                            <div>{{ server.location_city || '-' }}</div>
+                            <div>{{ server.location || '-' }}</div>
                         </td>
                         <td>
-                            <div class="price">€{{ server.price_eur || '-' }}</div>
+                            <div class="price">€{{ server.price || '-' }}</div>
                         </td>
                     </tr>
                 </tbody>
@@ -175,7 +175,7 @@
             </div>
         </div>
 
-        <!-- Enhanced Server-Side Pagination -->
+        <!-- Server side pagination -->
         <div v-if="pagination && pagination.total_pages > 1" class="pagination">
             <button @click="goToFirstPage" :disabled="pagination.page <= 1" class="pagination-btn">
                 First
@@ -244,7 +244,7 @@ export default {
             perPage: DEFAULT_PER_PAGE
         })
 
-        // Filter options (imported from constants)
+        // Filter options
         const storageOptions = STORAGE_OPTIONS
         const ramOptions = RAM_OPTIONS
         const hddTypes = HDD_TYPES
@@ -262,7 +262,7 @@ export default {
             }, DEBOUNCE_DELAY)
         }
 
-        // Computed properties
+        // computed prop
         const visiblePages = computed(() => {
             if (!pagination.value) return []
 
@@ -270,7 +270,7 @@ export default {
             const total = pagination.value.total_pages
             const pages = []
 
-            // Show up to 5 pages around current page
+            // show 5 pages around current page
             const start = Math.max(1, current - 2)
             const end = Math.min(total, current + 2)
 
@@ -283,13 +283,6 @@ export default {
 
 
         // Methods
-        const formatStorage = (gb) => {
-            if (gb >= 1024) {
-                return `${(gb / 1024).toFixed(1)}TB`
-            }
-            return `${gb}GB`
-        }
-
         const buildParams = () => {
             const params = {}
 
@@ -297,14 +290,13 @@ export default {
             if (filters.location) params.location = filters.location
             if (filters.hddType) params.hdd = filters.hddType
             if (filters.ramValues.length > 0) {
-                // Convert RAM values to GB for API - send as comma-separated list
+                // convert ram values to gb andsend as comma separated
                 const ramGBs = filters.ramValues.map(ram => {
                     const match = ram.match(/(\d+)GB/)
                     return match ? parseInt(match[1]) : 0
                 }).filter(gb => gb > 0)
 
                 if (ramGBs.length > 0) {
-                    // Send as comma-separated values for exact matching
                     params.ram_values = ramGBs.join(',')
                 }
             }
@@ -320,12 +312,12 @@ export default {
         const updateStorageFromSlider = () => {
             const selectedStorage = storageOptions[storageSliderIndex.value]
             filters.storageMax = selectedStorage
-            filters.storageMin = null // Allow all storage up to selected value
+            filters.storageMin = null
             applyFilters()
         }
 
         const setSliderValue = (index) => {
-            // Only update if the value actually changed
+            // only update if the value actually changed
             if (storageSliderIndex.value !== index) {
                 storageSliderIndex.value = index
                 updateStorageFromSlider()
@@ -363,10 +355,10 @@ export default {
             
             const index = filters.ramValues.indexOf(ram)
             if (index > -1) {
-                // Remove from array
+                // remove from array
                 filters.ramValues = filters.ramValues.filter(item => item !== ram)
             } else {
-                // Add to array
+                // add to array
                 filters.ramValues = [...filters.ramValues, ram]
             }
             applyFilters()
@@ -380,18 +372,6 @@ const formatStorageValue = (tb) => {
     return `${tb}${STORAGE_UNITS.TB}`
 }
 
-const formatStorageFromGB = (gb) => {
-    if (!gb) return '-'
-    if (gb >= 1024) {
-        const tb = gb / 1024
-        if (tb === Math.floor(tb)) {
-            return `${tb}TB`
-        } else {
-            return `${tb.toFixed(1)}TB`
-        }
-    }
-    return `${gb}GB`
-}
 
 
         const loadServers = async () => {
@@ -434,6 +414,11 @@ const formatStorageFromGB = (gb) => {
         }
 
         const applyFilters = () => {
+            filters.page = DEFAULT_PAGE
+            loadServers()
+        }
+
+        const loadServersForPage = () => {
             loadServers()
         }
 
@@ -457,7 +442,7 @@ const formatStorageFromGB = (gb) => {
         const goToPage = (page) => {
             if (page >= 1 && page <= pagination.value?.total_pages) {
                 filters.page = page
-                applyFilters()
+                loadServersForPage()
             }
         }
 
@@ -497,9 +482,7 @@ const formatStorageFromGB = (gb) => {
             hddTypes,
             storageSliderIndex,
             debouncedSearch,
-            formatStorage,
             formatStorageValue,
-            formatStorageFromGB,
             updateStorageFromSlider,
             setSliderValue,
             handleSliderClick,
@@ -518,6 +501,6 @@ const formatStorageFromGB = (gb) => {
 </script>
   
 <style scoped>
-@import './assets/app.css';
+/* Component-specific styles can go here */
 </style>
   

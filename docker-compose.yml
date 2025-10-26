@@ -1,24 +1,6 @@
 version: '3.8'
 
 services:
-  # Redis cache
-  redis:
-    image: redis:7-alpine
-    container_name: servers-filters-redis
-    ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    networks:
-      - servers-network
-
   # Go backend
   backend:
     build:
@@ -32,13 +14,8 @@ services:
       - SERVER_PORT=8080
       - DB_DRIVER=sqlite3
       - DB_DSN=data/servers.db
-      - CACHE_ENABLED=false
-      - CACHE_TYPE=redis
-      - CACHE_URL=redis://redis:6379
     volumes:
-      - ./backend/data:/app/data:ro
-    depends_on:
-      - redis
+      - ./backend/data:/app/data
     networks:
       - servers-network
 
@@ -60,9 +37,6 @@ services:
     networks:
       - servers-network
 
-volumes:
-  redis_data:
-    driver: local
 
 networks:
   servers-network:

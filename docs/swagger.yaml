@@ -1,0 +1,511 @@
+openapi: 3.0.3
+info:
+  title: Servers Filters API
+  description: |
+    A comprehensive RESTful API for filtering and managing server listings with advanced search capabilities.
+    
+    This API provides endpoints to search, filter, and retrieve server data with support for:
+    - Advanced filtering by RAM, storage, location, and hard disk type
+    - Pagination for efficient data handling
+    - Real-time search functionality
+    - Server metrics and analytics
+    - Location-based filtering
+    
+    ## Features
+    - **Server Filtering**: Filter by RAM, storage, location, and hard disk type
+    - **Pagination**: Efficient data pagination for large datasets
+    - **Real-time Search**: Fast server search and filtering
+    - **Metrics**: Server statistics and analytics
+    - **Locations**: Available server locations
+    
+  version: 1.0.0
+  contact:
+    name: Servers Filters API
+    url: https://github.com/your-username/servers-filters
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8081
+    description: Local development server
+  - url: http://3.237.50.32:8080
+    description: AWS production server
+
+paths:
+  /servers:
+    get:
+      tags:
+        - Servers
+      summary: Get filtered server listings
+      description: |
+        Retrieve a paginated list of servers with advanced filtering capabilities.
+        Supports filtering by RAM, storage, location, hard disk type, and text search.
+      operationId: getServers
+      parameters:
+        - name: q
+          in: query
+          description: Text search query for server model, CPU, or other fields
+          required: false
+          schema:
+            type: string
+            example: "Intel Xeon"
+        - name: location
+          in: query
+          description: Comma-separated list of locations to filter by
+          required: false
+          schema:
+            type: string
+            example: "Frankfurt,Amsterdam"
+        - name: ram_min
+          in: query
+          description: Minimum RAM in GB
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 8
+        - name: ram_max
+          in: query
+          description: Maximum RAM in GB
+          required: false
+          schema:
+            type: integer
+            minimum: 0
+            example: 32
+        - name: ram_values
+          in: query
+          description: Comma-separated list of specific RAM values to filter by
+          required: false
+          schema:
+            type: string
+            example: "8,16,32"
+        - name: storage_min
+          in: query
+          description: Minimum storage in GB
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 100.0
+        - name: storage_max
+          in: query
+          description: Maximum storage in GB
+          required: false
+          schema:
+            type: number
+            format: float
+            minimum: 0
+            example: 1000.0
+        - name: hdd
+          in: query
+          description: Hard disk type filter (SSD, HDD, etc.)
+          required: false
+          schema:
+            type: string
+            example: "SSD"
+        - name: sort
+          in: query
+          description: Sort order for results
+          required: false
+          schema:
+            type: string
+            enum: [price_asc, price_desc, ram_asc, ram_desc, storage_asc, storage_desc]
+            example: "price_asc"
+        - name: page
+          in: query
+          description: Page number for pagination
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+            example: 1
+        - name: per_page
+          in: query
+          description: Number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+            example: 20
+      responses:
+        '200':
+          description: Successful response with server listings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServerListResponse'
+              examples:
+                success:
+                  summary: Successful server listing
+                  value:
+                    data:
+                      - id: 1
+                        model: "Dell PowerEdge R740"
+                        cpu: "Intel Xeon Gold 6248R"
+                        ram_gb: 32
+                        hdd_gb: 1000
+                        hdd_type: "SSD"
+                        storage_display: "1TB SSD"
+                        location: "Frankfurt"
+                        location_code: "DE"
+                        price: 299.99
+                        raw_price: "$299.99"
+                        raw_hdd: "2x500GB SSD"
+                        raw_ram: "32GB DDR4"
+                        created_at: "2024-01-15T10:30:00Z"
+                        updated_at: "2024-01-15T10:30:00Z"
+                    pagination:
+                      page: 1
+                      per_page: 20
+                      total: 150
+                      total_pages: 8
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                bad_request:
+                  summary: Invalid parameters
+                  value:
+                    error: "Bad Request"
+                    message: "Invalid parameter values"
+                    code: 400
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                server_error:
+                  summary: Internal server error
+                  value:
+                    error: "Internal Server Error"
+                    message: "Failed to retrieve servers"
+                    code: 500
+
+  /locations:
+    get:
+      tags:
+        - Locations
+      summary: Get available server locations
+      description: |
+        Retrieve a list of all available server locations.
+        Useful for populating location filters in the frontend.
+      operationId: getLocations
+      responses:
+        '200':
+          description: Successful response with available locations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Frankfurt", "Amsterdam", "London", "New York", "Singapore"]
+              examples:
+                success:
+                  summary: Available locations
+                  value:
+                    data: ["Frankfurt", "Amsterdam", "London", "New York", "Singapore"]
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                server_error:
+                  summary: Internal server error
+                  value:
+                    error: "Internal Server Error"
+                    message: "Failed to retrieve locations"
+                    code: 500
+
+  /metrics:
+    get:
+      tags:
+        - Metrics
+      summary: Get server metrics and statistics
+      description: |
+        Retrieve comprehensive metrics about the server database including:
+        - Total number of servers
+        - Price range (min/max)
+        - Number of unique locations
+        - Last update timestamp
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Successful response with server metrics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MetricsResponse'
+              examples:
+                success:
+                  summary: Server metrics
+                  value:
+                    total_servers: 1500
+                    min_price: 29.99
+                    max_price: 2999.99
+                    locations_count: 12
+                    last_updated: "2024-01-15T10:30:00Z"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                server_error:
+                  summary: Internal server error
+                  value:
+                    error: "Internal Server Error"
+                    message: "Failed to retrieve metrics"
+                    code: 500
+
+components:
+  schemas:
+    ServerDTO:
+      type: object
+      description: Server object with all relevant information
+      properties:
+        id:
+          type: integer
+          description: Unique server identifier
+          example: 1
+        model:
+          type: string
+          description: Server model name
+          example: "Dell PowerEdge R740"
+        cpu:
+          type: string
+          nullable: true
+          description: CPU specification
+          example: "Intel Xeon Gold 6248R"
+        ram_gb:
+          type: integer
+          nullable: true
+          description: RAM in gigabytes
+          example: 32
+        hdd_gb:
+          type: integer
+          nullable: true
+          description: Storage in gigabytes
+          example: 1000
+        hdd_type:
+          type: string
+          description: Hard disk type
+          example: "SSD"
+        storage_display:
+          type: string
+          description: Human-readable storage description
+          example: "1TB SSD"
+        location:
+          type: string
+          nullable: true
+          description: Server location
+          example: "Frankfurt"
+        location_code:
+          type: string
+          nullable: true
+          description: Location country code
+          example: "DE"
+        price:
+          type: number
+          format: float
+          nullable: true
+          description: Server price
+          example: 299.99
+        raw_price:
+          type: string
+          description: Original price string from data source
+          example: "$299.99"
+        raw_hdd:
+          type: string
+          description: Original HDD string from data source
+          example: "2x500GB SSD"
+        raw_ram:
+          type: string
+          description: Original RAM string from data source
+          example: "32GB DDR4"
+        created_at:
+          type: string
+          format: date-time
+          description: Record creation timestamp
+          example: "2024-01-15T10:30:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          description: Record last update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    ServerListRequest:
+      type: object
+      description: Request parameters for server filtering
+      properties:
+        query:
+          type: string
+          description: Text search query
+          example: "Intel Xeon"
+        location:
+          type: array
+          items:
+            type: string
+          description: List of locations to filter by
+          example: ["Frankfurt", "Amsterdam"]
+        ram_min:
+          type: integer
+          nullable: true
+          description: Minimum RAM in GB
+          example: 8
+        ram_max:
+          type: integer
+          nullable: true
+          description: Maximum RAM in GB
+          example: 32
+        ram_values:
+          type: array
+          items:
+            type: integer
+          description: Specific RAM values to filter by
+          example: [8, 16, 32]
+        storage_min:
+          type: number
+          format: float
+          nullable: true
+          description: Minimum storage in GB
+          example: 100.0
+        storage_max:
+          type: number
+          format: float
+          nullable: true
+          description: Maximum storage in GB
+          example: 1000.0
+        hdd:
+          type: string
+          description: Hard disk type filter
+          example: "SSD"
+        sort:
+          type: string
+          description: Sort order
+          enum: [price_asc, price_desc, ram_asc, ram_desc, storage_asc, storage_desc]
+          example: "price_asc"
+        page:
+          type: integer
+          minimum: 1
+          description: Page number
+          example: 1
+        per_page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Items per page
+          example: 20
+
+    PaginationDTO:
+      type: object
+      description: Pagination metadata
+      properties:
+        page:
+          type: integer
+          description: Current page number
+          example: 1
+        per_page:
+          type: integer
+          description: Items per page
+          example: 20
+        total:
+          type: integer
+          format: int64
+          description: Total number of items
+          example: 150
+        total_pages:
+          type: integer
+          description: Total number of pages
+          example: 8
+
+    ServerListResponse:
+      type: object
+      description: Response for server list endpoint
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServerDTO'
+          description: Array of server objects
+        pagination:
+          $ref: '#/components/schemas/PaginationDTO'
+          description: Pagination metadata
+
+    MetricsResponse:
+      type: object
+      description: Server metrics and statistics
+      properties:
+        total_servers:
+          type: integer
+          format: int64
+          description: Total number of servers in database
+          example: 1500
+        min_price:
+          type: number
+          format: float
+          description: Minimum server price
+          example: 29.99
+        max_price:
+          type: number
+          format: float
+          description: Maximum server price
+          example: 2999.99
+        locations_count:
+          type: integer
+          format: int64
+          description: Number of unique locations
+          example: 12
+        last_updated:
+          type: string
+          format: date-time
+          description: Last database update timestamp
+          example: "2024-01-15T10:30:00Z"
+
+    ErrorResponse:
+      type: object
+      description: Error response structure
+      properties:
+        error:
+          type: string
+          description: Error type
+          example: "Internal Server Error"
+        message:
+          type: string
+          description: Detailed error message
+          example: "Failed to retrieve servers"
+        code:
+          type: integer
+          description: HTTP status code
+          example: 500
+
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication (if implemented)
+
+tags:
+  - name: Servers
+    description: Server listing and filtering operations
+  - name: Locations
+    description: Location-based operations
+  - name: Metrics
+    description: Server statistics and analytics

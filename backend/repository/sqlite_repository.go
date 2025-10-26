@@ -12,25 +12,20 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// SQLiteRepository implements ServerRepository for SQLite
+// implement ServerRepository for SQLite
 type SQLiteRepository struct {
 	db *sqlx.DB
 }
 
-// NewSQLiteRepository creates a new SQLite repository
+// create a new SQLite repository
 func NewSQLiteRepository(db *sqlx.DB) ServerRepository {
 	return &SQLiteRepository{db: db}
 }
 
-// GetServers retrieves servers with filters and pagination
+// get servers with filters and pagination
 func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.ServerFilters) ([]models.Server, int64, error) {
-	// Build WHERE clause
 	whereClause, args := r.buildWhereClause(filters)
-
-	// Build ORDER BY clause
 	orderClause := r.buildOrderClause(filters.Sort)
-
-	// Build LIMIT and OFFSET
 	limit := filters.PerPage
 	if limit <= 0 {
 		limit = constants.DefaultPerPage
@@ -46,34 +41,22 @@ func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.Server
 
 	// Build query
 	query := fmt.Sprintf(`
-		SELECT id, model, cpu, ram_gb, hdd, storage_gb, location_city, 
-		       location_code, price_eur, raw_price, raw_ram, raw_hdd, created_at
+		SELECT id, model, cpu, ram_gb, hdd_gb, hdd_type, location, 
+		       location_code, price, raw_price, raw_hdd, raw_ram, created_at, updated_at
 		FROM servers
 		%s
 		%s
 		LIMIT ? OFFSET ?
 	`, whereClause, orderClause)
 
-	// Add limit and offset to args
+	// Add limit and offset
 	args = append(args, limit, offset)
 
-	// Execute query
+	// Execute
 	var servers []models.Server
-	fmt.Printf("DEBUG REPO: Query=%s, Args=%v\n", query, args)
 	err := r.db.SelectContext(ctx, &servers, query, args...)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get servers: %w", err)
-	}
-	fmt.Printf("DEBUG REPO: Returned %d servers\n", len(servers))
-
-	// Also test the query manually
-	fmt.Printf("DEBUG REPO: Testing query manually...\n")
-	var testServers []models.Server
-	testErr := r.db.SelectContext(ctx, &testServers, query, args...)
-	if testErr != nil {
-		fmt.Printf("DEBUG REPO: Manual test failed: %v\n", testErr)
-	} else {
-		fmt.Printf("DEBUG REPO: Manual test returned %d servers\n", len(testServers))
 	}
 
 	// Get total count
@@ -85,7 +68,7 @@ func (r *SQLiteRepository) GetServers(ctx context.Context, filters models.Server
 	return servers, total, nil
 }
 
-// GetServerCount returns the total count of servers matching the filters
+// Get the total count of servers matching the filters
 func (r *SQLiteRepository) GetServerCount(ctx context.Context, filters models.ServerFilters) (int64, error) {
 	whereClause, args := r.buildWhereClause(filters)
 
@@ -100,13 +83,13 @@ func (r *SQLiteRepository) GetServerCount(ctx context.Context, filters models.Se
 	return count, nil
 }
 
-// GetLocations returns all unique locations
+// Get all unique locations
 func (r *SQLiteRepository) GetLocations(ctx context.Context) ([]string, error) {
 	query := `
-		SELECT DISTINCT location_city 
+		SELECT DISTINCT location 
 		FROM servers 
-		WHERE location_city IS NOT NULL AND location_city != ''
-		ORDER BY location_city
+		WHERE location IS NOT NULL AND location != ''
+		ORDER BY location
 	`
 
 	var locations []string
@@ -118,16 +101,16 @@ func (r *SQLiteRepository) GetLocations(ctx context.Context) ([]string, error) {
 	return locations, nil
 }
 
-// GetMetrics returns basic metrics about the servers
+// Get statistics about the servers
 func (r *SQLiteRepository) GetMetrics(ctx context.Context) (*models.ServerMetrics, error) {
 	query := `
 		SELECT 
 			COUNT(*) as total_servers,
-			MIN(price_eur) as min_price,
-			MAX(price_eur) as max_price,
-			COUNT(DISTINCT location_city) as locations_count
+			MIN(price) as min_price,
+			MAX(price) as max_price,
+			COUNT(DISTINCT location) as locations_count
 		FROM servers
-		WHERE price_eur IS NOT NULL AND location_city IS NOT NULL AND location_city != ''
+		WHERE price IS NOT NULL AND location IS NOT NULL AND location != ''
 	`
 
 	var result struct {
@@ -153,12 +136,12 @@ func (r *SQLiteRepository) GetMetrics(ctx context.Context) (*models.ServerMetric
 	return metrics, nil
 }
 
-// buildWhereClause builds the WHERE clause and arguments for the query
+// build where clause and args for the query
 func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (string, []interface{}) {
 	var conditions []string
 	var args []interface{}
 
-	// Text search (model only)
+	// Model text search
 	if filters.Query != "" {
 		conditions = append(conditions, "model LIKE ?")
 		searchTerm := "%" + filters.Query + "%"
@@ -176,11 +159,11 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 		for _, loc := range filters.Location {
 			args = append(args, loc)
 		}
-		conditions = append(conditions, fmt.Sprintf("(location_city IN (%s) OR location_code IN (%s))",
+		conditions = append(conditions, fmt.Sprintf("(location IN (%s) OR location_code IN (%s))",
 			strings.Join(placeholders, ","), strings.Join(placeholders, ",")))
 	}
 
-	// RAM exact values filter (for checkboxes)
+	// RAM filter
 	if len(filters.RAMValues) > 0 {
 		placeholders := make([]string, len(filters.RAMValues))
 		for i, ram := range filters.RAMValues {
@@ -200,22 +183,20 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 		}
 	}
 
-	// Storage range filter (now receives GB values from service layer)
+	// Storage range filter (get GB values from service layer)
 	if filters.StorageMin != nil {
-		conditions = append(conditions, "storage_gb >= ?")
+		conditions = append(conditions, "hdd_gb >= ?")
 		args = append(args, *filters.StorageMin)
-		fmt.Printf("🔥 CUSTOM DEBUG: StorageMin filter added: %d GB\n", *filters.StorageMin)
 	}
 	if filters.StorageMax != nil {
-		conditions = append(conditions, "storage_gb <= ?")
+		conditions = append(conditions, "hdd_gb <= ?")
 		args = append(args, *filters.StorageMax)
-		fmt.Printf("🔥 CUSTOM DEBUG: StorageMax filter added: %d GB\n", *filters.StorageMax)
 	}
 
-	// HDD filter
+	// HDD type filter
 	if filters.HDD != "" {
-		conditions = append(conditions, "hdd LIKE ?")
-		args = append(args, "%"+filters.HDD+"%")
+		conditions = append(conditions, "hdd_type = ?")
+		args = append(args, filters.HDD)
 	}
 
 	if len(conditions) == 0 {
@@ -225,7 +206,7 @@ func (r *SQLiteRepository) buildWhereClause(filters models.ServerFilters) (strin
 	return "WHERE " + strings.Join(conditions, " AND "), args
 }
 
-// buildOrderClause builds the ORDER BY clause for the query
+// build the order by clause for the query
 func (r *SQLiteRepository) buildOrderClause(sort string) string {
 	sortOption := models.ParseSort(sort)
 	return fmt.Sprintf("ORDER BY %s %s", sortOption.Field, strings.ToUpper(sortOption.Order))
