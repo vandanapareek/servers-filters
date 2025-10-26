@@ -4,15 +4,15 @@ A full-stack web application for filtering and managing server listings with adv
 
 ## Project Overview
 
-This project provides a RESTful API backend built with Go and a modern Vue.js frontend for filtering server data. Users can search and filter servers based on various criteria including RAM, storage, location, and price.
+This project provides a RESTful API backend built with Go and a Vue.js frontend for filtering server data. Users can search and filter servers based on various criteria including RAM, storage, location, and price.
 
 ## Features
 
 - **Server Filtering**: Filter by RAM, storage, location, and hard disk type
 - **Pagination**: Efficient data pagination for large datasets
 - **Real-time Search**: Fast server search and filtering
-- **Responsive UI**: Modern Vue.js frontend with responsive design
-- **RESTful API**: Clean Go backend with comprehensive API endpoints
+- **Responsive UI**: Vue.js frontend with responsive design
+- **RESTful API**: Go backend with comprehensive API endpoints
 
 ## Tech Stack
 
@@ -97,12 +97,21 @@ kill -9 <PID>
 #### Option 2: Change ports in docker-compose.yml
 ```yaml
 services:
-  frontend:
-    ports:
-      - "3001:80"  # Use port 3001 instead
   backend:
     ports:
-      - "8081:8080"  # Use port 8081 instead
+      - "8082:8080"  # Use port 8082 instead of 8081
+  frontend:
+    ports:
+      - "3001:80"  # Use port 3001 instead of 3000
+    build:
+      args:
+        - VITE_API_BASE_URL=http://localhost:8082  # Must match backend port
+```
+
+**Important:** After changing ports, you must rebuild the frontend:
+```bash
+docker-compose build frontend
+docker-compose up
 ```
 
 ### Verification
