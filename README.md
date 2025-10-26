@@ -6,6 +6,13 @@ A full-stack web application for filtering and managing server listings with adv
 
 This project provides a RESTful API backend built with Go and a Vue.js frontend for filtering server data. Users can search and filter servers based on various criteria including RAM, storage, location, and price.
 
+## Live Demo
+
+**Try the application live:** [http://54.164.151.75/](http://54.164.151.75/)
+
+- **Frontend**: http://54.164.151.75/
+- **Backend API**: http://3.236.4.27:8080/servers
+
 ## Features
 
 - **Server Filtering**: Filter by RAM, storage, location, and hard disk type
