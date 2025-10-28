@@ -199,6 +199,19 @@ The application is deployed on AWS ECS with the following URLs:
 - **ECS** for container orchestration
 - **ECR** for Docker image storage
 
+## Database Setup
+
+### Creating Database from Excel Data
+
+The application uses a SQLite database that was created from an Excel file containing server data. The database creation process involves parsing and normalizing the Excel data into a structured format.
+
+#### Prerequisites for Database Creation
+- Python 3.8+
+- Required Python packages:
+  ```bash
+  pip install pandas openpyxl
+  ```
+
 ## Testing
 
 Run backend tests:
