@@ -176,7 +176,7 @@ Interactive API documentation with Swagger UI:
 
 The application is deployed on AWS ECS with the following URLs:
 
-- **Frontend**: http://54.164.151.75/
+- **Frontend**: http://54.81.154.19/
 - **Backend API**: http://3.236.4.27:8080/servers
 
 ### Deployment Process
