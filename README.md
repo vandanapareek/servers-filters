@@ -8,9 +8,9 @@ This project provides a RESTful API backend built with Go and a Vue.js frontend 
 
 ## Live Demo
 
-**Try the application live:** [http://54.164.151.75/](http://54.164.151.75/)
+**Try the application live:** [http://54.81.154.19/](http://54.81.154.19/)
 
-- **Frontend**: http://54.164.151.75/
+- **Frontend**: http://54.81.154.19/
 - **Backend API**: http://3.236.4.27:8080/servers
 
 ## Features
